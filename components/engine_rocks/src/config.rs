@@ -1,9 +1,7 @@
 // Copyright 2019 TiKV Project Authors. Licensed under Apache-2.0.
 
-use configuration::ConfigValue;
 pub use rocksdb::PerfLevel;
-use rocksdb::{DBCompressionType, DBTitanDBBlobRunMode};
-use std::str::FromStr;
+use rocksdb::{DBCompressionType};
 
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -116,60 +114,6 @@ pub mod compression_type_level_serde {
         }
 
         deserializer.deserialize_seq(SeqVisitor)
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum BlobRunMode {
-    Normal,
-    ReadOnly,
-    Fallback,
-}
-
-impl From<BlobRunMode> for ConfigValue {
-    fn from(mode: BlobRunMode) -> ConfigValue {
-        ConfigValue::BlobRunMode(format!("k{:?}", mode))
-    }
-}
-
-impl Into<BlobRunMode> for ConfigValue {
-    fn into(self) -> BlobRunMode {
-        if let ConfigValue::BlobRunMode(s) = self {
-            match s.as_str() {
-                "kNormal" => BlobRunMode::Normal,
-                "kReadOnly" => BlobRunMode::ReadOnly,
-                "kFallback" => BlobRunMode::Fallback,
-                m => panic!("expect: kNormal, kReadOnly or kFallback, got: {:?}", m),
-            }
-        } else {
-            panic!("expect: ConfigValue::BlobRunMode, got: {:?}", self);
-        }
-    }
-}
-
-impl FromStr for BlobRunMode {
-    type Err = String;
-    fn from_str(s: &str) -> Result<BlobRunMode, String> {
-        match s {
-            "normal" => Ok(BlobRunMode::Normal),
-            "read-only" => Ok(BlobRunMode::ReadOnly),
-            "fallback" => Ok(BlobRunMode::Fallback),
-            m => Err(format!(
-                "expect: normal, read-only or fallback, got: {:?}",
-                m
-            )),
-        }
-    }
-}
-
-impl Into<DBTitanDBBlobRunMode> for BlobRunMode {
-    fn into(self) -> DBTitanDBBlobRunMode {
-        match self {
-            BlobRunMode::Normal => DBTitanDBBlobRunMode::Normal,
-            BlobRunMode::ReadOnly => DBTitanDBBlobRunMode::ReadOnly,
-            BlobRunMode::Fallback => DBTitanDBBlobRunMode::Fallback,
-        }
     }
 }
 

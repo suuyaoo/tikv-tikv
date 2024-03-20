@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut};
 use std::u64;
 
 use rocksdb::{
-    DBEntryType, TablePropertiesCollector, TablePropertiesCollectorFactory, TitanBlobIndex,
+    DBEntryType, TablePropertiesCollector, TablePropertiesCollectorFactory,
     UserCollectedProperties,
 };
 use tikv_util::codec::number::{self, NumberEncoder};
@@ -22,10 +22,6 @@ pub const DEFAULT_PROP_KEYS_INDEX_DISTANCE: u64 = 40 * 1024;
 fn get_entry_size(value: &[u8], entry_type: DBEntryType) -> std::result::Result<u64, ()> {
     match entry_type {
         DBEntryType::Put => Ok(value.len() as u64),
-        DBEntryType::BlobIndex => match TitanBlobIndex::decode(value) {
-            Ok(index) => Ok(index.blob_size + value.len() as u64),
-            Err(_) => Err(()),
-        },
         _ => Err(()),
     }
 }
@@ -396,7 +392,6 @@ impl TablePropertiesCollectorFactory for RangePropertiesCollectorFactory {
 #[cfg(test)]
 mod tests {
     use engine::rocks::{DBEntryType, TablePropertiesCollector};
-    use rand::Rng;
 
     use super::*;
 
@@ -497,61 +492,5 @@ mod tests {
                 count
             );
         }
-    }
-
-    #[test]
-    fn test_range_properties_with_blob_index() {
-        let cases = [
-            ("a", 0),
-            // handle "a": size(size = 1, offset = 1),keys(1,1)
-            ("b", DEFAULT_PROP_SIZE_INDEX_DISTANCE / 8),
-            ("c", DEFAULT_PROP_SIZE_INDEX_DISTANCE / 4),
-            ("d", DEFAULT_PROP_SIZE_INDEX_DISTANCE / 2),
-            ("e", DEFAULT_PROP_SIZE_INDEX_DISTANCE / 8),
-            // handle "e": size(size = DISTANCE + 4, offset = DISTANCE + 5),keys(4,5)
-            ("f", DEFAULT_PROP_SIZE_INDEX_DISTANCE / 4),
-            ("g", DEFAULT_PROP_SIZE_INDEX_DISTANCE / 2),
-            ("h", DEFAULT_PROP_SIZE_INDEX_DISTANCE / 8),
-            ("i", DEFAULT_PROP_SIZE_INDEX_DISTANCE / 4),
-            // handle "i": size(size = DISTANCE / 8 * 9 + 4, offset = DISTANCE / 8 * 17 + 9),keys(4,5)
-            ("j", DEFAULT_PROP_SIZE_INDEX_DISTANCE / 2),
-            ("k", DEFAULT_PROP_SIZE_INDEX_DISTANCE / 2),
-            // handle "k": size(size = DISTANCE + 2, offset = DISTANCE / 8 * 25 + 11),keys(2,11)
-        ];
-
-        let handles = ["a", "e", "i", "k"];
-
-        let mut rng = rand::thread_rng();
-        let mut collector = RangePropertiesCollector::default();
-        let mut extra_value_size: u64 = 0;
-        for &(k, vlen) in &cases {
-            if handles.contains(&k) || rng.gen_range(0, 2) == 0 {
-                let v = vec![0; vlen as usize - extra_value_size as usize];
-                extra_value_size = 0;
-                collector.add(k.as_bytes(), &v, DBEntryType::Put, 0, 0);
-            } else {
-                let mut blob_index = TitanBlobIndex::default();
-                blob_index.blob_size = vlen - extra_value_size;
-                let v = blob_index.encode();
-                extra_value_size = v.len() as u64;
-                collector.add(k.as_bytes(), &v, DBEntryType::BlobIndex, 0, 0);
-            }
-        }
-        let result = UserProperties(collector.finish());
-
-        let props = RangeProperties::decode(&result).unwrap();
-        assert_eq!(props.smallest_key().unwrap(), cases[0].0.as_bytes());
-        assert_eq!(
-            props.largest_key().unwrap(),
-            cases[cases.len() - 1].0.as_bytes()
-        );
-        assert_eq!(
-            props.get_approximate_size_in_range(b"e", b"i"),
-            DEFAULT_PROP_SIZE_INDEX_DISTANCE / 8 * 9 + 4
-        );
-        assert_eq!(
-            props.get_approximate_size_in_range(b"", b"k"),
-            DEFAULT_PROP_SIZE_INDEX_DISTANCE / 8 * 25 + 11
-        );
     }
 }

@@ -23,7 +23,6 @@ use configuration::{
 use engine::rocks::{
     BlockBasedOptions, Cache, ColumnFamilyOptions, CompactionPriority, DBCompactionStyle,
     DBCompressionType, DBOptions, DBRateLimiterMode, DBRecoveryMode, LRUCacheOptions,
-    TitanDBOptions,
 };
 use slog;
 
@@ -39,7 +38,7 @@ use engine::rocks::util::{
     NoopSliceTransform,
 };
 use engine::DB;
-use engine_rocks::config::{self as rocks_config, BlobRunMode, CompressionType};
+use engine_rocks::config::{self as rocks_config};
 use engine_rocks::{
     RangePropertiesCollectorFactory, RocksEventListener, DEFAULT_PROP_KEYS_INDEX_DISTANCE,
     DEFAULT_PROP_SIZE_INDEX_DISTANCE,
@@ -85,83 +84,11 @@ fn memory_mb_for_cf(is_raft_db: bool, cf: &str) -> usize {
     size / MB as usize
 }
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug, Configuration)]
-#[serde(default)]
-#[serde(rename_all = "kebab-case")]
-pub struct TitanCfConfig {
-    #[config(skip)]
-    pub min_blob_size: ReadableSize,
-    #[config(skip)]
-    pub blob_file_compression: CompressionType,
-    #[config(skip)]
-    pub blob_cache_size: ReadableSize,
-    #[config(skip)]
-    pub min_gc_batch_size: ReadableSize,
-    #[config(skip)]
-    pub max_gc_batch_size: ReadableSize,
-    #[config(skip)]
-    pub discardable_ratio: f64,
-    #[config(skip)]
-    pub sample_ratio: f64,
-    #[config(skip)]
-    pub merge_small_file_threshold: ReadableSize,
-    pub blob_run_mode: BlobRunMode,
-    #[config(skip)]
-    pub level_merge: bool,
-    #[config(skip)]
-    pub range_merge: bool,
-    #[config(skip)]
-    pub max_sorted_runs: i32,
-    #[config(skip)]
-    pub gc_merge_rewrite: bool,
-}
-
-impl Default for TitanCfConfig {
-    fn default() -> Self {
-        Self {
-            min_blob_size: ReadableSize::kb(1), // disable titan default
-            blob_file_compression: CompressionType::Lz4,
-            blob_cache_size: ReadableSize::mb(0),
-            min_gc_batch_size: ReadableSize::mb(16),
-            max_gc_batch_size: ReadableSize::mb(64),
-            discardable_ratio: 0.5,
-            sample_ratio: 0.1,
-            merge_small_file_threshold: ReadableSize::mb(8),
-            blob_run_mode: BlobRunMode::Normal,
-            level_merge: false,
-            range_merge: true,
-            max_sorted_runs: 20,
-            gc_merge_rewrite: false,
-        }
-    }
-}
-
-impl TitanCfConfig {
-    fn build_opts(&self) -> TitanDBOptions {
-        let mut opts = TitanDBOptions::new();
-        opts.set_min_blob_size(self.min_blob_size.0 as u64);
-        opts.set_blob_file_compression(self.blob_file_compression.into());
-        opts.set_blob_cache(self.blob_cache_size.0 as usize, -1, false, 0.0);
-        opts.set_min_gc_batch_size(self.min_gc_batch_size.0 as u64);
-        opts.set_max_gc_batch_size(self.max_gc_batch_size.0 as u64);
-        opts.set_discardable_ratio(self.discardable_ratio);
-        opts.set_sample_ratio(self.sample_ratio);
-        opts.set_merge_small_file_threshold(self.merge_small_file_threshold.0 as u64);
-        opts.set_blob_run_mode(self.blob_run_mode.into());
-        opts.set_level_merge(self.level_merge);
-        opts.set_range_merge(self.range_merge);
-        opts.set_max_sorted_runs(self.max_sorted_runs);
-        opts.set_gc_merge_rewrite(self.gc_merge_rewrite);
-        opts
-    }
-}
-
 fn get_background_job_limit(
     default_background_jobs: i32,
     default_background_flushes: i32,
     default_sub_compactions: u32,
-    default_background_gc: i32,
-) -> (i32, i32, u32, i32) {
+) -> (i32, i32, u32) {
     let cpu_num = SysQuota::new().cpu_cores_quota();
     // At the minimum, we should have two background jobs: one for flush and one for compaction.
     // Otherwise, the number of background jobs should not exceed cpu_num - 1.
@@ -181,14 +108,11 @@ fn get_background_job_limit(
         1,
         cmp::min(default_sub_compactions, (max_compactions - 1) as u32),
     );
-    // Maximum background GC threads for Titan
-    let max_background_gc: i32 = cmp::min(default_background_gc, cpu_num as i32);
 
     (
         max_background_jobs,
         max_background_flushes,
         max_sub_compactions,
-        max_background_gc,
     )
 }
 
@@ -254,8 +178,6 @@ macro_rules! cf_config {
             pub prop_keys_index_distance: u64,
             #[config(skip)]
             pub enable_doubly_skiplist: bool,
-            #[config(submodule)]
-            pub titan: TitanCfConfig,
         }
 
         impl $name {
@@ -365,27 +287,6 @@ macro_rules! write_into_metrics {
         $metrics
             .with_label_values(&[$tag, "enable_doubly_skiplist"])
             .set(($cf.enable_doubly_skiplist as i32).into());
-        $metrics
-            .with_label_values(&[$tag, "titan_min_blob_size"])
-            .set($cf.titan.min_blob_size.0 as f64);
-        $metrics
-            .with_label_values(&[$tag, "titan_blob_cache_size"])
-            .set($cf.titan.blob_cache_size.0 as f64);
-        $metrics
-            .with_label_values(&[$tag, "titan_min_gc_batch_size"])
-            .set($cf.titan.min_gc_batch_size.0 as f64);
-        $metrics
-            .with_label_values(&[$tag, "titan_max_gc_batch_size"])
-            .set($cf.titan.max_gc_batch_size.0 as f64);
-        $metrics
-            .with_label_values(&[$tag, "titan_discardable_ratio"])
-            .set($cf.titan.discardable_ratio);
-        $metrics
-            .with_label_values(&[$tag, "titan_sample_ratio"])
-            .set($cf.titan.sample_ratio);
-        $metrics
-            .with_label_values(&[$tag, "titan_merge_small_file_threshold"])
-            .set($cf.titan.merge_small_file_threshold.0 as f64);
     }};
 }
 
@@ -489,7 +390,6 @@ impl Default for DefaultCfConfig {
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
             enable_doubly_skiplist: true,
-            titan: TitanCfConfig::default(),
         }
     }
 }
@@ -502,7 +402,6 @@ impl DefaultCfConfig {
             prop_keys_index_distance: self.prop_keys_index_distance,
         });
         cf_opts.add_table_properties_collector_factory("tikv.range-properties-collector", f);
-        cf_opts.set_titandb_options(&self.titan.build_opts());
         cf_opts
     }
 }
@@ -511,9 +410,6 @@ cf_config!(WriteCfConfig);
 
 impl Default for WriteCfConfig {
     fn default() -> WriteCfConfig {
-        // Setting blob_run_mode=read_only effectively disable Titan.
-        let mut titan = TitanCfConfig::default();
-        titan.blob_run_mode = BlobRunMode::ReadOnly;
         WriteCfConfig {
             block_size: ReadableSize::kb(64),
             block_cache_size: ReadableSize::mb(memory_mb_for_cf(false, CF_WRITE) as u64),
@@ -556,7 +452,6 @@ impl Default for WriteCfConfig {
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
             enable_doubly_skiplist: true,
-            titan,
         }
     }
 }
@@ -579,7 +474,6 @@ impl WriteCfConfig {
             prop_keys_index_distance: self.prop_keys_index_distance,
         });
         cf_opts.add_table_properties_collector_factory("tikv.range-properties-collector", f);
-        cf_opts.set_titandb_options(&self.titan.build_opts());
         cf_opts
     }
 }
@@ -588,9 +482,6 @@ cf_config!(LockCfConfig);
 
 impl Default for LockCfConfig {
     fn default() -> LockCfConfig {
-        // Setting blob_run_mode=read_only effectively disable Titan.
-        let mut titan = TitanCfConfig::default();
-        titan.blob_run_mode = BlobRunMode::ReadOnly;
         LockCfConfig {
             block_size: ReadableSize::kb(16),
             block_cache_size: ReadableSize::mb(memory_mb_for_cf(false, CF_LOCK) as u64),
@@ -625,7 +516,6 @@ impl Default for LockCfConfig {
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
             enable_doubly_skiplist: true,
-            titan,
         }
     }
 }
@@ -643,7 +533,6 @@ impl LockCfConfig {
         });
         cf_opts.add_table_properties_collector_factory("tikv.range-properties-collector", f);
         cf_opts.set_memtable_prefix_bloom_size_ratio(0.1);
-        cf_opts.set_titandb_options(&self.titan.build_opts());
         cf_opts
     }
 }
@@ -652,9 +541,6 @@ cf_config!(RaftCfConfig);
 
 impl Default for RaftCfConfig {
     fn default() -> RaftCfConfig {
-        // Setting blob_run_mode=read_only effectively disable Titan.
-        let mut titan = TitanCfConfig::default();
-        titan.blob_run_mode = BlobRunMode::ReadOnly;
         RaftCfConfig {
             block_size: ReadableSize::kb(16),
             block_cache_size: ReadableSize::mb(128),
@@ -689,7 +575,6 @@ impl Default for RaftCfConfig {
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
             enable_doubly_skiplist: true,
-            titan,
         }
     }
 }
@@ -702,49 +587,7 @@ impl RaftCfConfig {
             .set_prefix_extractor("NoopSliceTransform", f)
             .unwrap();
         cf_opts.set_memtable_prefix_bloom_size_ratio(0.1);
-        cf_opts.set_titandb_options(&self.titan.build_opts());
         cf_opts
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-#[serde(default)]
-#[serde(rename_all = "kebab-case")]
-// Note that Titan is still an experimental feature. Once enabled, it can't fall back.
-// Forced fallback may result in data loss.
-pub struct TitanDBConfig {
-    pub enabled: bool,
-    pub dirname: String,
-    pub disable_gc: bool,
-    pub max_background_gc: i32,
-    // The value of this field will be truncated to seconds.
-    pub purge_obsolete_files_period: ReadableDuration,
-}
-
-impl Default for TitanDBConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            dirname: "".to_owned(),
-            disable_gc: false,
-            max_background_gc: 4,
-            purge_obsolete_files_period: ReadableDuration::secs(10),
-        }
-    }
-}
-
-impl TitanDBConfig {
-    fn build_opts(&self) -> TitanDBOptions {
-        let mut opts = TitanDBOptions::new();
-        opts.set_dirname(&self.dirname);
-        opts.set_disable_background_gc(self.disable_gc);
-        opts.set_max_background_gc(self.max_background_gc);
-        opts.set_purge_obsolete_files_period(self.purge_obsolete_files_period.as_secs() as usize);
-        opts
-    }
-
-    fn validate(&self) -> Result<(), Box<dyn Error>> {
-        Ok(())
     }
 }
 
@@ -809,16 +652,12 @@ pub struct DbConfig {
     pub lockcf: LockCfConfig,
     #[config(submodule)]
     pub raftcf: RaftCfConfig,
-    #[config(skip)]
-    pub titan: TitanDBConfig,
 }
 
 impl Default for DbConfig {
     fn default() -> DbConfig {
-        let (max_background_jobs, max_background_flushes, max_sub_compactions, max_background_gc) =
-            get_background_job_limit(8, 2, 3, 4);
-        let mut titan_config = TitanDBConfig::default();
-        titan_config.max_background_gc = max_background_gc;
+        let (max_background_jobs, max_background_flushes, max_sub_compactions) =
+            get_background_job_limit(8, 2, 3);
         DbConfig {
             wal_recovery_mode: DBRecoveryMode::PointInTime,
             wal_dir: "".to_owned(),
@@ -852,7 +691,6 @@ impl Default for DbConfig {
             writecf: WriteCfConfig::default(),
             lockcf: LockCfConfig::default(),
             raftcf: RaftCfConfig::default(),
-            titan: titan_config,
         }
     }
 }
@@ -913,9 +751,6 @@ impl DbConfig {
         opts.enable_unordered_write(self.enable_unordered_write);
         opts.add_event_listener(RocksEventListener::new("kv"));
 
-        if self.titan.enabled {
-            opts.set_titandb_options(&self.titan.build_opts());
-        }
         opts
     }
 
@@ -943,11 +778,7 @@ impl DbConfig {
         self.lockcf.validate()?;
         self.writecf.validate()?;
         self.raftcf.validate()?;
-        self.titan.validate()?;
         if self.enable_unordered_write {
-            if self.titan.enabled {
-                return Err("RocksDB.unordered_write does not support Titan".into());
-            }
             if self.enable_pipelined_write || self.enable_multi_batch_write {
                 return Err("pipelined_write is not compatible with unordered_write".into());
             }
@@ -1009,7 +840,6 @@ impl Default for RaftDefaultCfConfig {
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
             enable_doubly_skiplist: true,
-            titan: TitanCfConfig::default(),
         }
     }
 }
@@ -1021,7 +851,6 @@ impl RaftDefaultCfConfig {
         cf_opts
             .set_memtable_insert_hint_prefix_extractor("RaftPrefixSliceTransform", f)
             .unwrap();
-        cf_opts.set_titandb_options(&self.titan.build_opts());
         cf_opts
     }
 }
@@ -1079,16 +908,12 @@ pub struct RaftDbConfig {
     pub wal_bytes_per_sync: ReadableSize,
     #[config(submodule)]
     pub defaultcf: RaftDefaultCfConfig,
-    #[config(skip)]
-    pub titan: TitanDBConfig,
 }
 
 impl Default for RaftDbConfig {
     fn default() -> RaftDbConfig {
-        let (max_background_jobs, max_background_flushes, max_sub_compactions, max_background_gc) =
-            get_background_job_limit(4, 1, 2, 4);
-        let mut titan_config = TitanDBConfig::default();
-        titan_config.max_background_gc = max_background_gc;
+        let (max_background_jobs, max_background_flushes, max_sub_compactions) =
+            get_background_job_limit(4, 1, 2);
         RaftDbConfig {
             wal_recovery_mode: DBRecoveryMode::PointInTime,
             wal_dir: "".to_owned(),
@@ -1116,7 +941,6 @@ impl Default for RaftDbConfig {
             bytes_per_sync: ReadableSize::mb(1),
             wal_bytes_per_sync: ReadableSize::kb(512),
             defaultcf: RaftDefaultCfConfig::default(),
-            titan: titan_config,
         }
     }
 }
@@ -1164,9 +988,6 @@ impl RaftDbConfig {
         opts.set_bytes_per_sync(self.bytes_per_sync.0 as u64);
         opts.set_wal_bytes_per_sync(self.wal_bytes_per_sync.0 as u64);
         // TODO maybe create a new env for raft engine
-        if self.titan.enabled {
-            opts.set_titandb_options(&self.titan.build_opts());
-        }
 
         opts
     }
@@ -1178,9 +999,6 @@ impl RaftDbConfig {
     fn validate(&mut self) -> Result<(), Box<dyn Error>> {
         self.defaultcf.validate()?;
         if self.enable_unordered_write {
-            if self.titan.enabled {
-                return Err("raftdb: unordered_write is not compatible with Titan".into());
-            }
             if self.enable_pipelined_write {
                 return Err(
                     "raftdb: pipelined_write is not compatible with unordered_write".into(),
@@ -1310,11 +1128,6 @@ impl ConfigManager for DBConfigManger {
                 if let Some(v) = cf_change.remove("block_cache_size") {
                     // currently we can't modify block_cache_size via set_options_cf
                     self.set_block_cache_size(&cf_name, v.into())?;
-                }
-                if let Some(ConfigValue::Module(titan_change)) = cf_change.remove("titan") {
-                    for (name, value) in titan_change {
-                        cf_change.insert(name, value);
-                    }
                 }
                 if !cf_change.is_empty() {
                     let cf_change = config_value_to_string(cf_change.into_iter().collect());
@@ -2231,27 +2044,6 @@ impl TiKvConfig {
             return Err("default rocksdb not exist, buf raftdb exist".into());
         }
 
-        // Check blob file dir is empty when titan is disabled
-        if !self.rocksdb.titan.enabled {
-            let titandb_path = if self.rocksdb.titan.dirname.is_empty() {
-                Path::new(&kv_db_path).join("titandb")
-            } else {
-                Path::new(&self.rocksdb.titan.dirname).to_path_buf()
-            };
-            if let Err(e) =
-                tikv_util::config::check_data_dir_empty(titandb_path.to_str().unwrap(), "blob")
-            {
-                return Err(format!(
-                    "check: titandb-data-dir-empty; err: \"{}\"; \
-                     hint: You have disabled titan when its data directory is not empty. \
-                     To properly shutdown titan, please enter fallback blob-run-mode and \
-                     wait till titandb files are all safely ingested.",
-                    e
-                )
-                .into());
-            }
-        }
-
         let expect_keepalive = self.raft_store.raft_heartbeat_interval() * 2;
         if expect_keepalive > self.server.grpc_keepalive_time.0 {
             return Err(format!(
@@ -2635,7 +2427,6 @@ fn to_change_value(v: &str, typed: &ConfigValue) -> CfgResult<ConfigValue> {
         ConfigValue::I32(_) => ConfigValue::from(v.parse::<i32>()?),
         ConfigValue::Usize(_) => ConfigValue::from(v.parse::<usize>()?),
         ConfigValue::Bool(_) => ConfigValue::from(v.parse::<bool>()?),
-        ConfigValue::BlobRunMode(_) => ConfigValue::from(v.parse::<BlobRunMode>()?),
         ConfigValue::String(_) => ConfigValue::String(v.to_owned()),
         _ => unreachable!(),
     };
@@ -2663,8 +2454,7 @@ fn to_toml_encode(change: HashMap<String, String>) -> CfgResult<HashMap<String, 
                         ConfigValue::Duration(_)
                         | ConfigValue::Size(_)
                         | ConfigValue::OptionSize(_)
-                        | ConfigValue::String(_)
-                        | ConfigValue::BlobRunMode(_) => Ok(true),
+                        | ConfigValue::String(_) => Ok(true),
                         _ => Ok(false),
                     }
                 }
@@ -3046,10 +2836,6 @@ mod tests {
         );
         change.insert("gc.max-write-bytes-per-sec".to_owned(), "100MB".to_owned());
         change.insert("raftstore.sync-log".to_owned(), "false".to_owned());
-        change.insert(
-            "rocksdb.defaultcf.titan.blob-run-mode".to_owned(),
-            "read-only".to_owned(),
-        );
         let res = to_toml_encode(change).unwrap();
         assert_eq!(
             res.get("raftstore.pd-heartbeat-tick-interval"),
@@ -3064,10 +2850,6 @@ mod tests {
             Some(&"\"100MB\"".to_owned())
         );
         assert_eq!(res.get("raftstore.sync-log"), Some(&"false".to_owned()));
-        assert_eq!(
-            res.get("rocksdb.defaultcf.titan.blob-run-mode"),
-            Some(&"\"read-only\"".to_owned())
-        );
     }
 
     fn new_engines(cfg: TiKvConfig) -> (Arc<DB>, ConfigController) {
@@ -3193,26 +2975,6 @@ mod tests {
             defaultcf_opts.get_block_cache_capacity(),
             ReadableSize::mb(256).0
         );
-    }
-
-    #[test]
-    fn test_dispatch_titan_blob_run_mode_config() {
-        let mut cfg = TiKvConfig::default();
-        let mut incoming = cfg.clone();
-        cfg.rocksdb.defaultcf.titan.blob_run_mode = BlobRunMode::Normal;
-        incoming.rocksdb.defaultcf.titan.blob_run_mode = BlobRunMode::Fallback;
-
-        let diff = cfg
-            .rocksdb
-            .defaultcf
-            .titan
-            .diff(&incoming.rocksdb.defaultcf.titan);
-        assert_eq!(diff.len(), 1);
-
-        let diff = config_value_to_string(diff.into_iter().collect());
-        assert_eq!(diff.len(), 1);
-        assert_eq!(diff[0].0.as_str(), "blob_run_mode");
-        assert_eq!(diff[0].1.as_str(), "kFallback");
     }
 
     #[test]

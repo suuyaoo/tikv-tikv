@@ -12,7 +12,6 @@ use crate::range::Range;
 #[derive(Clone, Debug)]
 pub enum DeleteStrategy {
     DeleteFiles,
-    DeleteBlobs,
     DeleteByKey,
     DeleteByRange,
     DeleteByWriter { sst_path: String },

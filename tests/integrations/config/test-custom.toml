@@ -196,13 +196,6 @@ enable-pipelined-write = false
 enable-unordered-write = true
 enable-multi-batch-write = false
 
-[rocksdb.titan]
-enabled = true
-dirname = "bar"
-disable-gc = false
-max-background-gc = 9
-purge-obsolete-files-period = "1s"
-
 [rocksdb.defaultcf]
 block-size = "12KB"
 block-cache-size = "12GB"
@@ -245,21 +238,6 @@ force-consistency-checks = true
 prop-size-index-distance = 4000000
 prop-keys-index-distance = 40000
 enable-doubly-skiplist = false
-
-[rocksdb.defaultcf.titan]
-min-blob-size = "2018B"
-blob-file-compression = "zstd"
-blob-cache-size = "12GB"
-min-gc-batch-size = "12KB"
-max-gc-batch-size = "12MB"
-discardable-ratio = 0.00156
-sample-ratio = 0.982
-merge-small-file-threshold = "21KB"
-blob-run-mode = "fallback"
-level-merge = true
-range-merge = true
-max-sorted-runs = 100
-gc-merge-rewrite = true
 
 [rocksdb.writecf]
 block-size = "12KB"
@@ -413,13 +391,6 @@ allow-concurrent-memtable-write = false
 bytes-per-sync = "1MB"
 wal-bytes-per-sync = "32KB"
 
-[raftdb.titan]
-enabled = true
-dirname = "bar"
-disable-gc = false
-max-background-gc = 9
-purge-obsolete-files-period = "1s"
-
 [raftdb.defaultcf]
 block-size = "12KB"
 block-cache-size = "12GB"
@@ -461,21 +432,6 @@ hard-pending-compaction-bytes-limit = "12GB"
 force-consistency-checks = true
 prop-size-index-distance = 4000000
 prop-keys-index-distance = 40000
-
-[raftdb.defaultcf.titan]
-min-blob-size = "2018B"
-blob-file-compression = "zstd"
-blob-cache-size = "12GB"
-min-gc-batch-size = "12KB"
-max-gc-batch-size = "12MB"
-discardable-ratio = 0.00156
-sample-ratio = 0.982
-merge-small-file-threshold = "21KB"
-blob-run-mode = "fallback"
-level-merge = true
-range-merge = true
-max-sorted-runs = 100
-gc-merge-rewrite = true
 
 [security]
 ca-path = "invalid path"

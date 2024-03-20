@@ -74,12 +74,12 @@ mod tests {
 
     use engine_rocks::{
         util::{new_engine, RocksCFOptions},
-        RocksColumnFamilyOptions, RocksDBOptions, RocksEngine, RocksIngestExternalFileOptions,
-        RocksSstWriterBuilder, RocksTitanDBOptions,
+        RocksDBOptions, RocksEngine, RocksIngestExternalFileOptions,
+        RocksSstWriterBuilder,
     };
     use engine_traits::{
-        CFHandleExt, CfName, ColumnFamilyOptions, DBOptions, ImportExt,
-        IngestExternalFileOptions, Peekable, SstWriter, SstWriterBuilder, TitanDBOptions,
+        CFHandleExt, CfName, ImportExt,
+        IngestExternalFileOptions, Peekable, SstWriter, SstWriterBuilder,
     };
     use std::{fs, path::Path};
     use tempfile::Builder;
@@ -175,21 +175,6 @@ mod tests {
     fn test_prepare_sst_for_ingestion() {
         check_prepare_sst_for_ingestion(
             None, None,
-        );
-    }
-
-    #[test]
-    fn test_prepare_sst_for_ingestion_titan() {
-        let mut db_opts = RocksDBOptions::new();
-        let mut titan_opts = RocksTitanDBOptions::new();
-        // Force all values write out to blob files.
-        titan_opts.set_min_blob_size(0);
-        db_opts.set_titandb_options(&titan_opts);
-        let mut cf_opts = RocksColumnFamilyOptions::new();
-        cf_opts.set_titandb_options(&titan_opts);
-        check_prepare_sst_for_ingestion(
-            Some(db_opts),
-            Some(vec![RocksCFOptions::new("default", cf_opts)]),
         );
     }
 }

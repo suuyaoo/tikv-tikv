@@ -1,13 +1,10 @@
 // Copyright 2019 TiKV Project Authors. Licensed under Apache-2.0.
 
-use crate::db_options::PanicTitanDBOptions;
 use engine_traits::ColumnFamilyOptions;
 
 pub struct PanicColumnFamilyOptions;
 
 impl ColumnFamilyOptions for PanicColumnFamilyOptions {
-    type TitanDBOptions = PanicTitanDBOptions;
-
     fn new() -> Self {
         panic!()
     }
@@ -27,9 +24,6 @@ impl ColumnFamilyOptions for PanicColumnFamilyOptions {
         panic!()
     }
     fn set_block_cache_capacity(&self, capacity: u64) -> Result<(), String> {
-        panic!()
-    }
-    fn set_titandb_options(&mut self, opts: &Self::TitanDBOptions) {
         panic!()
     }
 }
