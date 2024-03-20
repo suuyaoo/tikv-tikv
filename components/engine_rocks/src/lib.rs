@@ -26,7 +26,6 @@ extern crate fail;
 mod cf_handle;
 pub use crate::cf_handle::*;
 mod cf_names;
-pub use crate::cf_names::*;
 mod cf_options;
 pub use crate::cf_options::*;
 mod db_options;

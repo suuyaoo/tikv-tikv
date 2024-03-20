@@ -8,6 +8,6 @@ publish = false
 error_code = { path = "../error_code" }
 log_wrappers = { path = "../log_wrappers" }
 protobuf = "2"
-quick-error = "1.2.2"
+quick-error = "1.2.3"
 tikv_alloc = { path = "../tikv_alloc" }
 tikv_util = { path = "../tikv_util" }

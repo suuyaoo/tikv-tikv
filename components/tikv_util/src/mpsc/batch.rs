@@ -93,7 +93,7 @@ impl Drop for Notifier {
     #[inline]
     fn drop(&mut self) {
         let notifier_registered = &self.0.notifier_registered;
-        if !notifier_registered.compare_and_swap(true, false, Ordering::AcqRel) {
+        if notifier_registered.compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire).is_err() {
             unreachable!("notifier_registered must be true");
         }
         self.0.notify();
@@ -159,7 +159,7 @@ impl<T> Sender<T> {
     #[inline]
     pub fn get_notifier(&self) -> Option<Notifier> {
         let notifier_registered = &self.state.notifier_registered;
-        if !notifier_registered.compare_and_swap(false, true, Ordering::AcqRel) {
+        if notifier_registered.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire).is_ok() {
             return Some(Notifier(Arc::clone(&self.state)));
         }
         None

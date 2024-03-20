@@ -18,7 +18,6 @@ use std::sync::atomic::{AtomicU16, Ordering};
 
 pub use crate::kv_generator::*;
 pub use crate::logging::*;
-pub use crate::macros::*;
 pub use crate::runner::{
     clear_failpoints, run_failpoint_tests, run_test_with_hook, run_tests, TestHook,
 };
@@ -67,9 +66,10 @@ const MIN_LOCAL_PORT: u16 = 32767;
 pub fn alloc_port() -> u16 {
     let p = INITIAL_PORT.load(Ordering::Relaxed);
     if p == 0 {
-        INITIAL_PORT.compare_and_swap(
+        let _ = INITIAL_PORT.compare_exchange(
             0,
             rand::thread_rng().gen_range(10240, MIN_LOCAL_PORT),
+            Ordering::SeqCst,
             Ordering::SeqCst,
         );
     }

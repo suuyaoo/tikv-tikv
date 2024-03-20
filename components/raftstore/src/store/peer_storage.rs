@@ -1154,18 +1154,20 @@ impl PeerStorage {
     pub fn cancel_applying_snap(&mut self) -> bool {
         let is_cancelled = match *self.snap_state.borrow() {
             SnapState::Applying(ref status) => {
-                if status.compare_and_swap(
+                if status.compare_exchange(
                     JOB_STATUS_PENDING,
                     JOB_STATUS_CANCELLING,
                     Ordering::SeqCst,
-                ) == JOB_STATUS_PENDING
+                    Ordering::SeqCst,
+                ).is_ok()
                 {
                     true
-                } else if status.compare_and_swap(
+                } else if status.compare_exchange(
                     JOB_STATUS_RUNNING,
                     JOB_STATUS_CANCELLING,
                     Ordering::SeqCst,
-                ) == JOB_STATUS_RUNNING
+                    Ordering::SeqCst,
+                ).is_ok()
                 {
                     return false;
                 } else {

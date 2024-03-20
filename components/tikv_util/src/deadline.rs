@@ -5,11 +5,7 @@ use super::time::{Duration, Instant};
 #[derive(Debug, Copy, Clone)]
 pub struct DeadlineError;
 
-impl std::error::Error for DeadlineError {
-    fn description(&self) -> &str {
-        "deadline has elapsed"
-    }
-}
+impl std::error::Error for DeadlineError {}
 
 impl std::fmt::Display for DeadlineError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {

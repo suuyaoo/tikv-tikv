@@ -28,7 +28,6 @@ pub fn env() -> Arc<Environment> {
 
 #[derive(Clone)]
 pub struct Client {
-    addr: String,
     client: DeadlockClient,
     sender: Option<UnboundedSender<DeadlockRequest>>,
 }
@@ -41,7 +40,6 @@ impl Client {
         let channel = security_mgr.connect(cb, addr);
         let client = DeadlockClient::new(channel);
         Self {
-            addr: addr.to_owned(),
             client,
             sender: None,
         }

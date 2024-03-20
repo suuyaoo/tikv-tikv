@@ -61,10 +61,10 @@ impl<N: Fsm> FsmState<N> {
 
     /// Take the fsm if it's IDLE.
     pub fn take_fsm(&self) -> Option<Box<N>> {
-        let previous_state =
+        let res =
             self.status
-                .compare_and_swap(NOTIFYSTATE_IDLE, NOTIFYSTATE_NOTIFIED, Ordering::AcqRel);
-        if previous_state != NOTIFYSTATE_IDLE {
+                .compare_exchange(NOTIFYSTATE_IDLE, NOTIFYSTATE_NOTIFIED, Ordering::AcqRel, Ordering::Acquire);
+        if res.is_err() {
             return None;
         }
 
@@ -102,19 +102,20 @@ impl<N: Fsm> FsmState<N> {
         let previous = self.data.swap(Box::into_raw(fsm), Ordering::AcqRel);
         let mut previous_status = NOTIFYSTATE_NOTIFIED;
         if previous.is_null() {
-            previous_status = self.status.compare_and_swap(
+            let res = self.status.compare_exchange(
                 NOTIFYSTATE_NOTIFIED,
                 NOTIFYSTATE_IDLE,
                 Ordering::AcqRel,
+                Ordering::Acquire,
             );
-            match previous_status {
-                NOTIFYSTATE_NOTIFIED => return,
-                NOTIFYSTATE_DROP => {
+            previous_status = match res {
+                Ok(_) => return,
+                Err(NOTIFYSTATE_DROP) => {
                     let ptr = self.data.swap(ptr::null_mut(), Ordering::AcqRel);
-                    unsafe { Box::from_raw(ptr) };
+                    unsafe { let _ = Box::from_raw(ptr); };
                     return;
                 }
-                _ => {}
+                Err(s) => s,
             }
         }
         panic!("invalid release state: {:?} {}", previous, previous_status);
@@ -131,7 +132,7 @@ impl<N: Fsm> FsmState<N> {
         let ptr = self.data.swap(ptr::null_mut(), Ordering::SeqCst);
         if !ptr.is_null() {
             unsafe {
-                Box::from_raw(ptr);
+                let _ = Box::from_raw(ptr);
             }
         }
     }
@@ -141,7 +142,9 @@ impl<N> Drop for FsmState<N> {
     fn drop(&mut self) {
         let ptr = self.data.swap(ptr::null_mut(), Ordering::SeqCst);
         if !ptr.is_null() {
-            unsafe { Box::from_raw(ptr) };
+            unsafe {
+                let _ = Box::from_raw(ptr);
+            }
         }
     }
 }

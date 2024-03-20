@@ -212,11 +212,7 @@ impl std::fmt::Display for Full {
     }
 }
 
-impl std::error::Error for Full {
-    fn description(&self) -> &str {
-        "future pool is full"
-    }
-}
+impl std::error::Error for Full {}
 
 #[cfg(test)]
 mod tests {

@@ -154,7 +154,7 @@ impl TiKVServer {
         // used during startup process.
         let security_mgr =
             Arc::new(SecurityManager::new(&config.security).unwrap_or_else(|e| {
-                fatal!("failed to create security manager: {}", e.description())
+                fatal!("failed to create security manager: {}", e)
             }));
         let pd_client = Self::connect_to_pd_cluster(&mut config, Arc::clone(&security_mgr));
 

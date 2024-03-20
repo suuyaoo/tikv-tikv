@@ -43,21 +43,22 @@ quick_error! {
         Io(err: IoError) {
             from()
             cause(err)
-            description(err.description())
+            display("{:?}", err)
         }
         Grpc(err: GrpcError) {
             from()
             cause(err)
-            description(err.description())
+            display("{:?}", err)
         }
         Uuid(err: UuidError) {
             from()
             cause(err)
-            description(err.description())
+            display("{:?}", err)
         }
         Future(err: RecvError) {
             from()
             cause(err)
+            display("{:?}", err)
         }
         StdFuture(err: Canceled) {
             from()
@@ -71,13 +72,12 @@ quick_error! {
         }
         EngineTraits(err: engine_traits::Error) {
             from()
-            description("Engine error")
             display("Engine {:?}", err)
         }
         ParseIntError(err: ParseIntError) {
             from()
             cause(err)
-            description(err.description())
+            display("{:?}", err)
         }
         FileExists(path: PathBuf, action: &'static str) {
             display("File {:?} exists, cannot {}", path, action)
@@ -110,7 +110,7 @@ quick_error! {
         CodecError(err: CodecError) {
             from()
             cause(err)
-            description(err.description())
+            display("{:?}", err)
         }
         FileConflict {
             display("ingest file conflict")

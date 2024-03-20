@@ -425,7 +425,7 @@ fn test_backup_and_import() {
             .cluster
             .call_command_on_leader(cmd, Duration::from_secs(5))
             .unwrap();
-        assert!(!resp.get_header().has_error(), resp);
+        assert!(!resp.get_header().has_error(), "{:?}", resp);
     }
 
     // Backup file should have same contents.
@@ -516,7 +516,7 @@ fn test_backup_huge_range_and_import() {
             .cluster
             .call_command_on_leader(cmd, Duration::from_secs(5))
             .unwrap();
-        assert!(!resp.get_header().has_error(), resp);
+        assert!(!resp.get_header().has_error(), "{:?}", resp);
     }
 
     // Backup file should have same contents.
@@ -614,7 +614,7 @@ fn test_backup_rawkv() {
             .cluster
             .call_command_on_leader(cmd, Duration::from_secs(5))
             .unwrap();
-        assert!(!resp.get_header().has_error(), resp);
+        assert!(!resp.get_header().has_error(), "{:?}", resp);
     }
 
     // Backup file should have same contents.

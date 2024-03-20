@@ -104,12 +104,12 @@ murmur3 = "0.5.1"
 nom = { version = "5.1.0", default-features = false, features = ["std"] }
 num_cpus = "1"
 pd_client = { path = "components/pd_client" }
-pin-project = "0.4.8"
+pin-project = "1.0"
 pnet_datalink = "0.23"
 prost = "0.6"
 pprof = { git = "https://github.com/tikv/pprof-rs.git", branch = "tikv-release-4.0", features = ["flamegraph", "protobuf"] }
 protobuf = "2.8"
-quick-error = "1.2.2"
+quick-error = "1.2.3"
 raft = { version = "0.6.0-alpha", default-features = false }
 raftstore = { path = "components/raftstore" }
 rand = "0.7.3"
@@ -163,6 +163,9 @@ zipf = "6.1.0"
 
 [patch."https://github.com/pingcap/kvproto.git"]
 kvproto = { git = "https://github.com/suuyaoo/tikv-kvproto.git", branch = "release-4.0" }
+
+[patch."https://github.com/tikv/yatp.git"]
+yatp = { git = "https://github.com/suuyaoo/yatp.git", branch = "tikv-4.0" }
 
 [patch.crates-io]
 # TODO: remove this when new raft-rs is published.

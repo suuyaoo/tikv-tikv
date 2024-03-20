@@ -2,9 +2,8 @@
 
 #![cfg_attr(test, feature(test))]
 #![feature(cell_update)]
-#![feature(shrink_to)]
 #![feature(div_duration)]
-#![feature(specialization)]
+#![feature(min_specialization)]
 
 #[macro_use]
 extern crate bitflags;

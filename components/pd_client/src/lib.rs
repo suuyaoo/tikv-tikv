@@ -1,6 +1,6 @@
 // Copyright 2016 TiKV Project Authors. Licensed under Apache-2.0.
 
-#![feature(specialization)]
+#![feature(min_specialization)]
 
 extern crate futures;
 #[macro_use]

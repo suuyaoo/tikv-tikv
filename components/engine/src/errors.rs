@@ -8,12 +8,10 @@ quick_error! {
         // RocksDb uses plain string as the error.
         RocksDb(msg: String) {
             from()
-            description("RocksDb error")
             display("RocksDb {}", msg)
         }
         // FIXME: It should not know Region.
         NotInRange( key: Vec<u8>, region_id: u64, start: Vec<u8>, end: Vec<u8>) {
-            description("Key is out of range")
             display(
                 "Key {} is out of [region {}] [{}, {})",
                 &log_wrappers::Value::key(&key), region_id, &log_wrappers::Value::key(&start), &log_wrappers::Value::key(&end)
@@ -22,32 +20,27 @@ quick_error! {
         Protobuf(err: protobuf::ProtobufError) {
             from()
             cause(err)
-            description(err.description())
             display("Protobuf {}", err)
         }
         #[cfg(feature = "prost-codec")]
         ProstDecode(err: prost::DecodeError) {
             cause(err)
-            description(err.description())
             display("Prost Decode {}", err)
         }
         #[cfg(feature = "prost-codec")]
         ProstEncode(err: prost::EncodeError) {
             cause(err)
-            description(err.description())
             display("Prost Encode {}", err)
         }
         Io(err: std::io::Error) {
             from()
             cause(err)
-            description(err.description())
             display("Io {}", err)
         }
 
         Other(err: Box<dyn error::Error + Sync + Send>) {
             from()
             cause(err.as_ref())
-            description(err.description())
             display("{:?}", err)
         }
     }

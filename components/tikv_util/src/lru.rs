@@ -191,7 +191,7 @@ where
         let map_len = self.map.len();
         match self.map.entry(key) {
             HashMapEntry::Occupied(mut e) => {
-                let mut entry = e.get_mut();
+                let entry = e.get_mut();
                 self.trace.promote(entry.record);
                 entry.value = value;
             }

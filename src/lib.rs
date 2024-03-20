@@ -21,13 +21,9 @@
 #![recursion_limit = "400"]
 #![feature(cell_update)]
 #![feature(proc_macro_hygiene)]
-#![feature(specialization)]
-#![feature(const_fn)]
+#![feature(min_specialization)]
 #![feature(box_patterns)]
-#![feature(shrink_to)]
-#![feature(drain_filter)]
-#![feature(str_strip)]
-#![feature(clamp)]
+#![feature(extract_if)]
 
 #[macro_use(fail_point)]
 extern crate fail;

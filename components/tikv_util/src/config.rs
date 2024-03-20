@@ -23,23 +23,18 @@ quick_error! {
     #[derive(Debug)]
     pub enum ConfigError {
         Limit(msg: String) {
-            description(msg)
             display("{}", msg)
         }
         Address(msg: String) {
-            description(msg)
             display("config address error: {}", msg)
         }
         StoreLabels(msg: String) {
-            description(msg)
             display("store label error: {}", msg)
         }
         Value(msg: String) {
-            description(msg)
             display("config value error: {}", msg)
         }
         FileSystem(msg: String) {
-            description(msg)
             display("config fs: {}", msg)
         }
     }

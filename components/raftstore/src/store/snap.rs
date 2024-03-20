@@ -67,16 +67,14 @@ quick_error! {
     #[derive(Debug)]
     pub enum Error {
         Abort {
-            description("abort")
             display("abort")
         }
         TooManySnapshots {
-            description("too many snapshots")
+            display("too many snapshots")
         }
         Other(err: Box<dyn error::Error + Sync + Send>) {
             from()
             cause(err.as_ref())
-            description(err.description())
             display("snap failed {:?}", err)
         }
     }
@@ -936,7 +934,7 @@ impl Write for Snapshot {
                 continue;
             }
 
-            let mut file_for_recving = cf_file.file_for_recving.as_mut().unwrap();
+            let file_for_recving = cf_file.file_for_recving.as_mut().unwrap();
 
             let left = (cf_file.size - file_for_recving.written_size) as usize;
             assert!(left > 0 && !next_buf.is_empty());
@@ -1014,7 +1012,6 @@ struct SnapManagerCore {
 #[derive(Clone)]
 pub struct SnapManager {
     core: SnapManagerCore,
-    router: Option<RaftRouter<RocksEngine>>,
     max_total_size: u64,
 }
 
@@ -1386,7 +1383,7 @@ impl SnapManagerBuilder {
     pub fn build<T: Into<String>>(
         self,
         path: T,
-        router: Option<RaftRouter<RocksEngine>>,
+        _router: Option<RaftRouter<RocksEngine>>,
     ) -> SnapManager {
         let limiter = Limiter::new(if self.max_write_bytes_per_sec > 0 {
             self.max_write_bytes_per_sec as f64
@@ -1405,7 +1402,6 @@ impl SnapManagerBuilder {
                 limiter,
                 temp_sst_id: Arc::new(AtomicU64::new(0)),
             },
-            router,
             max_total_size,
         }
     }

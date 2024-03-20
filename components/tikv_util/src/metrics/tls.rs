@@ -12,7 +12,7 @@ lazy_static! {
 }
 
 fn ensure_updater() {
-    if !UPDATER_IS_RUNNING.compare_and_swap(false, true, Ordering::SeqCst) {
+    if !UPDATER_IS_RUNNING.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
         Updater::new(200).start().unwrap();
     }
 }
