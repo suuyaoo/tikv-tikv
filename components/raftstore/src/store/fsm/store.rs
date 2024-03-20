@@ -8,12 +8,12 @@ use crossbeam::channel::{TryRecvError, TrySendError};
 use engine::rocks;
 use engine::DB;
 use engine_rocks::{
-    Compat, RocksCompactionJobInfo, RocksEngine, RocksWriteBatch, RocksWriteBatchVec,
+    Compat, RocksCompactionJobInfo, RocksEngine, RocksWriteBatch,
 };
 use engine_rocks::{PerfContext, PerfLevel};
 use engine_traits::{
     CompactionJobInfo, Iterable, KvEngine, Mutable, Peekable, WriteBatch, WriteBatchExt,
-    WriteBatchVecExt, WriteOptions,
+    WriteOptions,
 };
 use engine_traits::{CF_DEFAULT, CF_LOCK, CF_RAFT, CF_WRITE};
 use futures::Future;
@@ -1202,30 +1202,11 @@ impl RaftBatchSystem {
             applying_snap_count: Arc::new(AtomicUsize::new(0)),
         };
         let region_peers = builder.init()?;
-        let engine = RocksEngine::from_db(builder.engines.kv.clone());
-        if engine.support_write_batch_vec() {
-            self.start_system::<T, C, RocksWriteBatchVec>(
-                workers,
-                region_peers,
-                builder,
-                auto_split_controller,
-            )?;
-        } else {
-            self.start_system::<T, C, RocksWriteBatch>(
-                workers,
-                region_peers,
-                builder,
-                auto_split_controller,
-            )?;
-        }
+        self.start_system(workers, region_peers, builder, auto_split_controller)?;
         Ok(())
     }
 
-    fn start_system<
-        T: Transport + 'static,
-        C: PdClient + 'static,
-        W: WriteBatch + WriteBatchVecExt<RocksEngine> + 'static,
-    >(
+    fn start_system<T: Transport + 'static, C: PdClient + 'static>(
         &mut self,
         mut workers: Workers,
         region_peers: Vec<SenderFsmPair<RocksEngine>>,
@@ -1241,7 +1222,7 @@ impl RaftBatchSystem {
         let pd_client = builder.pd_client.clone();
         let importer = builder.importer.clone();
 
-        let apply_poller_builder = ApplyPollerBuilder::<W>::new(
+        let apply_poller_builder = ApplyPollerBuilder::new(
             &builder,
             ApplyNotifier::Router(self.router.clone()),
             self.apply_router.clone(),
