@@ -1,14 +1,10 @@
 // Copyright 2017 TiKV Project Authors. Licensed under Apache-2.0.
 
-use encryption::{
-    create_aes_ctr_crypter, encryption_method_from_db_encryption_method, DataKeyManager, Iv,
-};
 use engine_rocks::RocksEngine;
 use engine_traits::{CfName, CF_DEFAULT, CF_LOCK, CF_WRITE};
-use engine_traits::{EncryptionKeyManager, KvEngine, Snapshot as SnapshotTrait};
+use engine_traits::{KvEngine, Snapshot as SnapshotTrait};
 use futures_executor::block_on;
 use futures_util::io::{AllowStdIo, AsyncWriteExt};
-use kvproto::encryptionpb::EncryptionMethod;
 use kvproto::metapb::Region;
 use kvproto::raft_serverpb::RaftSnapshotData;
 use kvproto::raft_serverpb::{SnapshotCfFile, SnapshotMeta};
@@ -33,7 +29,7 @@ use error_code::{self, ErrorCode, ErrorCodeExt};
 use keys::{enc_end_key, enc_start_key};
 use tikv_util::collections::{HashMap, HashMapEntry as Entry};
 use tikv_util::file::{
-    calc_crc32, calc_crc32_and_size, delete_file_if_exist, file_exists, get_file_size, sync_dir,
+    calc_crc32, delete_file_if_exist, file_exists, get_file_size, sync_dir,
 };
 use tikv_util::time::{duration_to_sec, Instant, Limiter};
 use tikv_util::HandyRwLock;
@@ -44,7 +40,6 @@ use crate::store::metrics::{
     SNAPSHOT_CF_SIZE,
 };
 use crate::store::peer_storage::JOB_STATUS_CANCELLING;
-use openssl::symm::{Cipher, Crypter, Mode};
 
 #[path = "snap/io.rs"]
 pub mod snap_io;
@@ -229,16 +224,8 @@ fn gen_snapshot_meta(cf_files: &[CfFile]) -> RaftStoreResult<SnapshotMeta> {
     Ok(snapshot_meta)
 }
 
-fn calc_checksum_and_size(
-    path: &PathBuf,
-    encryption_key_manager: Option<&Arc<DataKeyManager>>,
-) -> RaftStoreResult<(u32, u64)> {
-    let (checksum, size) = if let Some(mgr) = encryption_key_manager {
-        // Crc32 and file size need to be calculated based on decrypted contents.
-        let file_name = path.to_str().unwrap();
-        let mut r = snap_io::get_decrypter_reader(file_name, &mgr)?;
-        calc_crc32_and_size(&mut r)?
-    } else {
+fn calc_checksum_and_size(path: &PathBuf) -> RaftStoreResult<(u32, u64)> {
+    let (checksum, size) = {
         (calc_crc32(path)?, get_file_size(path)?)
     };
     Ok((checksum, size))
@@ -276,9 +263,8 @@ fn check_file_size_and_checksum(
     path: &PathBuf,
     expected_size: u64,
     expected_checksum: u32,
-    encryption_key_manager: Option<&Arc<DataKeyManager>>,
 ) -> RaftStoreResult<()> {
-    let (checksum, size) = calc_checksum_and_size(path, encryption_key_manager)?;
+    let (checksum, size) = calc_checksum_and_size(path)?;
     check_file_size(size, expected_size, path)?;
     check_file_checksum(checksum, expected_checksum, path)?;
     Ok(())
@@ -286,7 +272,6 @@ fn check_file_size_and_checksum(
 
 struct CfFileForRecving {
     file: File,
-    encrypter: Option<(Cipher, Crypter)>,
     written_size: u64,
     write_digest: crc32fast::Hasher,
 }
@@ -478,28 +463,9 @@ impl Snapshot {
                 .open(&cf_file.tmp_path)?;
             cf_file.file_for_recving = Some(CfFileForRecving {
                 file: f,
-                encrypter: None,
                 written_size: 0,
                 write_digest: crc32fast::Hasher::new(),
             });
-
-            if let Some(mgr) = &s.mgr.encryption_key_manager {
-                let path = cf_file.path.to_str().unwrap();
-                let enc_info = mgr.new_file(path)?;
-                let mthd = encryption_method_from_db_encryption_method(enc_info.method);
-                if mthd != EncryptionMethod::Plaintext {
-                    let file_for_recving = cf_file.file_for_recving.as_mut().unwrap();
-                    file_for_recving.encrypter = Some(
-                        create_aes_ctr_crypter(
-                            mthd,
-                            &enc_info.key,
-                            Mode::Encrypt,
-                            Iv::from_slice(&enc_info.iv)?,
-                        )
-                        .map_err(|e| RaftStoreError::Snapshot(box_err!(e)))?,
-                    );
-                }
-            }
         }
         Ok(s)
     }
@@ -557,8 +523,7 @@ impl Snapshot {
             cf_file.size = meta.get_size();
             cf_file.checksum = meta.get_checksum();
             if file_exists(&cf_file.path) {
-                let mgr = self.mgr.encryption_key_manager.as_ref();
-                let (_, size) = calc_checksum_and_size(&cf_file.path, mgr)?;
+                let (_, size) = calc_checksum_and_size(&cf_file.path)?;
                 check_file_size(size, cf_file.size, &cf_file.path)?;
             }
         }
@@ -608,14 +573,12 @@ impl Snapshot {
                 &cf_file.path,
                 cf_file.size,
                 cf_file.checksum,
-                self.mgr.encryption_key_manager.as_ref(),
             )?;
 
             if !for_send && !plain_file_used(cf_file.cf) {
                 sst_importer::prepare_sst_for_ingestion(
                     &cf_file.path,
                     &cf_file.clone_path,
-                    self.mgr.encryption_key_manager.as_deref(),
                 )?;
             }
         }
@@ -697,9 +660,8 @@ impl Snapshot {
             let cf_file = &mut self.cf_files[self.cf_index];
             let path = cf_file.tmp_path.to_str().unwrap();
             let cf_stat = if plain_file_used(cf_file.cf) {
-                let key_mgr = self.mgr.encryption_key_manager.as_ref();
                 snap_io::build_plain_cf_file::<E>(
-                    path, key_mgr, kv_snap, cf_file.cf, &begin_key, &end_key,
+                    path, kv_snap, cf_file.cf, &begin_key, &end_key,
                 )?
             } else {
                 snap_io::build_sst_cf_file::<E>(
@@ -718,10 +680,6 @@ impl Snapshot {
                 self.mgr.rename_tmp_cf_file_for_send(cf_file)?;
             } else {
                 delete_file_if_exist(&cf_file.tmp_path).unwrap();
-                if let Some(ref mgr) = self.mgr.encryption_key_manager {
-                    let src = cf_file.tmp_path.to_str().unwrap();
-                    mgr.delete_file(src)?;
-                }
             }
 
             SNAPSHOT_CF_KV_COUNT
@@ -764,10 +722,6 @@ impl Snapshot {
 
             // Delete cf files.
             delete_file_if_exist(&cf_file.path).unwrap();
-            if let Some(ref mgr) = self.mgr.encryption_key_manager {
-                let path = cf_file.path.to_str().unwrap();
-                mgr.delete_file(path).unwrap();
-            }
         }
         delete_file_if_exist(&self.meta_file.path).unwrap();
         if self.hold_tmp_files {
@@ -822,7 +776,6 @@ impl Snapshot {
         let abort_checker = ApplyAbortChecker(options.abort);
         let coprocessor_host = options.coprocessor_host;
         let region = options.region;
-        let key_mgr = self.mgr.encryption_key_manager.as_ref();
         for cf_file in &mut self.cf_files {
             if cf_file.size == 0 {
                 // Skip empty cf file.
@@ -837,7 +790,6 @@ impl Snapshot {
                 };
                 snap_io::apply_plain_cf_file(
                     path,
-                    key_mgr,
                     &abort_checker,
                     &options.db,
                     cf,
@@ -1002,18 +954,7 @@ impl Write for Snapshot {
 
             let file = AllowStdIo::new(&mut file_for_recving.file);
             let mut file = self.mgr.limiter.clone().limit(file);
-            if file_for_recving.encrypter.is_none() {
-                block_on(file.write_all(&next_buf[0..write_len]))?;
-            } else {
-                let (cipher, crypter) = file_for_recving.encrypter.as_mut().unwrap();
-                let mut encrypt_buffer = vec![0; write_len + cipher.block_size()];
-                let mut bytes = crypter.update(&next_buf[0..write_len], &mut encrypt_buffer)?;
-                if switch {
-                    bytes += crypter.finalize(&mut encrypt_buffer)?;
-                }
-                encrypt_buffer.truncate(bytes);
-                block_on(file.write_all(&encrypt_buffer))?;
-            }
+            block_on(file.write_all(&next_buf[0..write_len]))?;
 
             if switch {
                 self.cf_index += 1;
@@ -1067,7 +1008,6 @@ struct SnapManagerCore {
     registry: Arc<RwLock<HashMap<SnapKey, Vec<SnapEntry>>>>,
     limiter: Limiter,
     temp_sst_id: Arc<AtomicU64>,
-    encryption_key_manager: Option<Arc<DataKeyManager>>,
 }
 
 /// `SnapManagerCore` trace all current processing snapshots.
@@ -1084,12 +1024,6 @@ impl SnapManager {
     }
 
     pub fn init(&self) -> io::Result<()> {
-        let enc_enabled = self.core.encryption_key_manager.is_some();
-        info!(
-            "Initializing SnapManager, encryption is enabled: {}",
-            enc_enabled
-        );
-
         // Use write lock so only one thread initialize the directory at a time.
         let _lock = self.core.registry.wl();
         let path = Path::new(&self.core.base);
@@ -1250,19 +1184,7 @@ impl SnapManager {
     pub fn get_snapshot_for_sending(&self, key: &SnapKey) -> RaftStoreResult<Box<Snapshot>> {
         let _lock = self.core.registry.rl();
         let base = &self.core.base;
-        let mut s = Snapshot::new_for_sending(base, key, &self.core)?;
-        let key_manager = match self.core.encryption_key_manager.as_ref() {
-            Some(m) => m,
-            None => return Ok(Box::new(s)),
-        };
-        for cf_file in &mut s.cf_files {
-            if cf_file.size == 0 {
-                continue;
-            }
-            let p = cf_file.path.to_str().unwrap();
-            let reader = snap_io::get_decrypter_reader(p, key_manager)?;
-            cf_file.file_for_sending = Some(reader);
-        }
+        let s = Snapshot::new_for_sending(base, key, &self.core)?;
         Ok(Box::new(s))
     }
 
@@ -1439,22 +1361,7 @@ impl SnapManagerCore {
 
     fn rename_tmp_cf_file_for_send(&self, cf_file: &mut CfFile) -> RaftStoreResult<()> {
         fs::rename(&cf_file.tmp_path, &cf_file.path)?;
-        let mgr = self.encryption_key_manager.as_ref();
-        if let Some(mgr) = &mgr {
-            let src = cf_file.tmp_path.to_str().unwrap();
-            let dst = cf_file.path.to_str().unwrap();
-            // It's ok that the cf file is moved but machine fails before `mgr.rename_file`
-            // because without metadata file, saved cf files are nothing.
-            while let Err(e) = mgr.link_file(src, dst) {
-                if e.kind() == ErrorKind::AlreadyExists {
-                    mgr.delete_file(dst)?;
-                    continue;
-                }
-                return Err(e.into());
-            }
-            mgr.delete_file(src)?;
-        }
-        let (checksum, size) = calc_checksum_and_size(&cf_file.path, mgr)?;
+        let (checksum, size) = calc_checksum_and_size(&cf_file.path)?;
         cf_file.checksum = checksum;
         cf_file.size = size;
         Ok(())
@@ -1465,7 +1372,6 @@ impl SnapManagerCore {
 pub struct SnapManagerBuilder {
     max_write_bytes_per_sec: i64,
     max_total_size: u64,
-    key_manager: Option<Arc<DataKeyManager>>,
 }
 
 impl SnapManagerBuilder {
@@ -1475,10 +1381,6 @@ impl SnapManagerBuilder {
     }
     pub fn max_total_size(mut self, bytes: u64) -> SnapManagerBuilder {
         self.max_total_size = bytes;
-        self
-    }
-    pub fn encryption_key_manager(mut self, m: Option<Arc<DataKeyManager>>) -> SnapManagerBuilder {
-        self.key_manager = m;
         self
     }
     pub fn build<T: Into<String>>(
@@ -1502,7 +1404,6 @@ impl SnapManagerBuilder {
                 registry: Arc::new(RwLock::new(map![])),
                 limiter,
                 temp_sst_id: Arc::new(AtomicU64::new(0)),
-                encryption_key_manager: self.key_manager,
             },
             router,
             max_total_size,
@@ -1525,12 +1426,10 @@ pub mod tests {
     use engine::Engines;
     use engine_rocks::{Compat, RocksEngine, RocksSnapshot, RocksSstWriterBuilder};
     use engine_traits::{
-        ExternalSstFileInfo, Iterable, KvEngine, Peekable, SstWriter, SstWriterBuilder, SyncMutable,
+        ExternalSstFileInfo, Iterable, Peekable, SstWriter, SstWriterBuilder, SyncMutable,
     };
 
-    use encryption::{DataKeyManager, EncryptionConfig, FileConfig, MasterKeyConfig};
     use engine_traits::{ALL_CFS, CF_DEFAULT, CF_LOCK, CF_RAFT, CF_WRITE};
-    use kvproto::encryptionpb::EncryptionMethod;
     use kvproto::metapb::{Peer, Region};
     use kvproto::raft_serverpb::{
         RaftApplyState, RaftSnapshotData, RegionLocalState, SnapshotMeta,
@@ -1693,8 +1592,7 @@ pub mod tests {
             base: path.to_owned(),
             registry: Arc::new(RwLock::new(map![])),
             limiter: Limiter::new(INFINITY),
-            temp_sst_id: Arc::new(AtomicU64::new(0)),
-            encryption_key_manager: None,
+            temp_sst_id: Arc::new(AtomicU64::new(0))
         }
     }
 
@@ -1703,27 +1601,6 @@ pub mod tests {
         let mut db_opt = DBOptions::new();
         db_opt.set_env(env);
         db_opt
-    }
-
-    fn create_enc_dir(prefix: &str) -> (TempDir, String, String) {
-        let dir = Builder::new().prefix(prefix).tempdir().unwrap();
-        let master_path = dir.path().join("master_key");
-
-        let mut f = OpenOptions::new()
-            .create_new(true)
-            .append(true)
-            .open(&master_path)
-            .unwrap();
-        // A 32 bytes key (in hex) followed by one '\n'.
-        f.write_all(&[b'A'; 64]).unwrap();
-        f.write_all(&[b'\n'; 1]).unwrap();
-
-        let dict_path = dir.path().join("dict");
-        fs::create_dir_all(&dict_path).unwrap();
-
-        let key_path = master_path.to_str().unwrap().to_owned();
-        let dict_path = dict_path.to_str().unwrap().to_owned();
-        (dir, key_path, dict_path)
     }
 
     #[test]
@@ -2447,53 +2324,5 @@ pub mod tests {
         src_mgr.init().unwrap();
         // The sst_path will be deleted by SnapManager because it is a temp filet.
         assert!(!file_util::file_exists(&sst_path));
-    }
-
-    #[test]
-    fn test_build_with_encryption() {
-        let (_enc_dir, key_path, dict_path) = create_enc_dir(&"test_build_with_encryption_enc");
-        let enc_cfg = EncryptionConfig {
-            data_encryption_method: EncryptionMethod::Aes128Ctr,
-            master_key: MasterKeyConfig::File {
-                config: FileConfig { path: key_path },
-            },
-            ..Default::default()
-        };
-        let enc_mgr = DataKeyManager::from_config(&enc_cfg, &dict_path)
-            .unwrap()
-            .map(|x| Arc::new(x));
-
-        assert!(enc_mgr.is_some());
-
-        let snap_dir = Builder::new()
-            .prefix("test_build_with_encryption_snap")
-            .tempdir()
-            .unwrap();
-        let _mgr_path = snap_dir.path().to_str().unwrap();
-        let snap_mgr = SnapManagerBuilder::default()
-            .encryption_key_manager(enc_mgr)
-            .build(snap_dir.path().to_str().unwrap(), None);
-        snap_mgr.init().unwrap();
-
-        let kv_dir = Builder::new()
-            .prefix("test_build_with_encryption_kv")
-            .tempdir()
-            .unwrap();
-        let db = open_test_db(kv_dir.path(), None, None).unwrap();
-        let engine = RocksEngine::from_db(db);
-        let snapshot = engine.snapshot();
-        let key = SnapKey::new(1, 1, 1);
-        let region = gen_test_region(1, 1, 1);
-
-        // Test one snapshot can be built multi times. DataKeyManager should be handled correctly.
-        for _ in 0..2 {
-            let mut s1 = snap_mgr.get_snapshot_for_building(&key).unwrap();
-            let mut snap_data = RaftSnapshotData::default();
-            snap_data.set_region(region.clone());
-            let mut stat = SnapshotStatistics::new();
-            s1.build::<RocksEngine>(&snapshot, &region, &mut snap_data, &mut stat)
-                .unwrap();
-            assert!(snap_mgr.delete_snapshot(&key, &s1, false));
-        }
     }
 }

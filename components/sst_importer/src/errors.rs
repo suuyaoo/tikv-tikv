@@ -6,7 +6,6 @@ use std::num::ParseIntError;
 use std::path::PathBuf;
 use std::result;
 
-use encryption::Error as EncryptionError;
 use error_code::{self, ErrorCode, ErrorCodeExt};
 use futures03::channel::oneshot::Canceled;
 use grpcio::Error as GrpcError;
@@ -32,7 +31,6 @@ pub fn error_inc(type_: &str, err: &Error) {
         Error::CannotReadExternalStorage(..) => "read_external_storage",
         Error::WrongKeyPrefix(..) => "wrong_prefix",
         Error::BadFormat(..) => "bad_format",
-        Error::Encryption(..) => "encryption",
         Error::CodecError(..) => "codec",
         _ => return,
     };
@@ -109,11 +107,6 @@ quick_error! {
         BadFormat(msg: String) {
             display("bad format {}", msg)
         }
-        Encryption(err: EncryptionError) {
-            from()
-            description("encryption error")
-            display("Encryption {:?}", err)
-        }
         CodecError(err: CodecError) {
             from()
             cause(err)
@@ -156,7 +149,6 @@ impl ErrorCodeExt for Error {
             }
             Error::WrongKeyPrefix(_, _, _) => error_code::sst_importer::WRONG_KEY_PREFIX,
             Error::BadFormat(_) => error_code::sst_importer::BAD_FORMAT,
-            Error::Encryption(e) => e.error_code(),
             Error::CodecError(e) => e.error_code(),
             Error::FileConflict => error_code::sst_importer::FILE_CONFLICT,
         }

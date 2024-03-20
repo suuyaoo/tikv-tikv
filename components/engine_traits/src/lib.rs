@@ -231,8 +231,6 @@ mod table_properties;
 pub use crate::table_properties::*;
 mod write_batch;
 pub use crate::write_batch::*;
-mod encryption;
-pub use crate::encryption::*;
 mod properties;
 pub use crate::properties::*;
 

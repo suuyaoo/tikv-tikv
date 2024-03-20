@@ -6,7 +6,6 @@ fn main() {
     let err_codes = vec![
         codec::ALL_ERROR_CODES.iter(),
         coprocessor::ALL_ERROR_CODES.iter(),
-        encryption::ALL_ERROR_CODES.iter(),
         engine::ALL_ERROR_CODES.iter(),
         pd::ALL_ERROR_CODES.iter(),
         raft::ALL_ERROR_CODES.iter(),

@@ -10,12 +10,12 @@
 
 use crate::{setup::*, signal_handler};
 use cdc::{CdcConfigManager, MemoryQuota};
-use encryption::DataKeyManager;
 use engine::rocks;
 use engine_rocks::{
-    encryption::get_env, from_rocks_compression_type, Compat, RocksEngine, RocksMetricsFlusher,
+    from_rocks_compression_type, Compat, RocksEngine, RocksMetricsFlusher,
     DEFAULT_FLUSHER_INTERVAL,
 };
+use engine::rocks::util::security::encrypted_env_from_cipher_file;
 use engine_traits::{KvEngines, MetricsFlusher, CF_DEFAULT, CF_WRITE};
 use fs2::FileExt;
 use futures_cpupool::Builder;
@@ -96,7 +96,6 @@ pub fn run_tikv(config: TiKvConfig) {
     tikv.check_conflict_addr();
     tikv.init_fs();
     tikv.init_yatp();
-    tikv.init_encryption();
     tikv.init_engines();
     let gc_worker = tikv.init_gc_worker();
     let server_config = tikv.init_servers(&gc_worker);
@@ -122,7 +121,6 @@ struct TiKVServer {
     system: Option<RaftBatchSystem>,
     resolver: resolve::PdStoreAddrResolver,
     store_path: PathBuf,
-    encryption_key_manager: Option<Arc<DataKeyManager>>,
     engines: Option<Engines>,
     servers: Option<Servers>,
     status_server: Option<Box<dyn Stop>>,
@@ -187,7 +185,6 @@ impl TiKVServer {
             system: Some(system),
             resolver,
             store_path,
-            encryption_key_manager: None,
             engines: None,
             servers: None,
             status_server: None,
@@ -330,22 +327,26 @@ impl TiKVServer {
         prometheus::register(Box::new(yatp::metrics::MULTILEVEL_LEVEL_ELAPSED.clone())).unwrap();
     }
 
-    fn init_encryption(&mut self) {
-        self.encryption_key_manager = DataKeyManager::from_config(
-            &self.config.security.encryption,
-            &self.config.storage.data_dir,
-        )
-        .unwrap()
-        .map(|key_manager| Arc::new(key_manager));
-    }
-
     fn init_engines(&mut self) {
-        let env = get_env(self.encryption_key_manager.clone(), None /*base_env*/).unwrap();
         let block_cache = self.config.storage.block_cache.build_shared_cache();
 
         let raft_db_path = Path::new(&self.config.raft_store.raftdb_path);
         let mut raft_db_opts = self.config.raftdb.build_opt();
-        raft_db_opts.set_env(env.clone());
+        // Create encrypted env from cipher file
+        let encrypted_env = if !self.security_mgr.cipher_file().is_empty() {
+            match encrypted_env_from_cipher_file(&self.security_mgr.cipher_file(), None) {
+                Err(e) => fatal!(
+                    "failed to create encrypted env from cipher file, err {:?}",
+                    e
+                ),
+                Ok(env) => Some(env),
+            }
+        } else {
+            None
+        };
+        if let Some(ref encrypted_env) = encrypted_env {
+            raft_db_opts.set_env(encrypted_env.clone());
+        }
         let raft_db_cf_opts = self.config.raftdb.build_cf_opts(&block_cache);
         let raft_engine = rocks::util::new_engine_opt(
             raft_db_path.to_str().unwrap(),
@@ -356,8 +357,10 @@ impl TiKVServer {
 
         // Create kv engine.
         let mut kv_db_opts = self.config.rocksdb.build_opt();
-        kv_db_opts.set_env(env);
         kv_db_opts.add_event_listener(new_compaction_listener(self.router.clone()));
+        if let Some(encrypted_env) = encrypted_env {
+            kv_db_opts.set_env(encrypted_env);
+        }
         let kv_cfs_opts = self.config.rocksdb.build_cf_opts(&block_cache);
         let db_path = self
             .store_path
@@ -506,7 +509,6 @@ impl TiKVServer {
         let snap_mgr = SnapManagerBuilder::default()
             .max_write_bytes_per_sec(bps)
             .max_total_size(self.config.server.snap_max_total_size.0)
-            .encryption_key_manager(self.encryption_key_manager.clone())
             .build(snap_path, Some(self.router.clone()));
 
         // Create and register cdc.
@@ -537,7 +539,7 @@ impl TiKVServer {
 
         let import_path = self.store_path.join("import");
         let mut importer =
-            SSTImporter::new(import_path, self.encryption_key_manager.clone()).unwrap();
+            SSTImporter::new(import_path).unwrap();
         for (cf_name, compression_type) in &[
             (
                 CF_DEFAULT,

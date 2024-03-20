@@ -750,7 +750,7 @@ fn test_double_run_node() {
     let coprocessor_host = CoprocessorHost::new(router, raftstore::coprocessor::Config::default());
     let importer = {
         let dir = Path::new(engines.kv.path()).join("import-sst");
-        Arc::new(SSTImporter::new(dir, None).unwrap())
+        Arc::new(SSTImporter::new(dir).unwrap())
     };
 
     let store_meta = Arc::new(Mutex::new(StoreMeta::new(20)));

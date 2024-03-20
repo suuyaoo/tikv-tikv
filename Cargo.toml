@@ -35,7 +35,6 @@ prost-codec = [
   "raftstore/prost-codec",
   "sst_importer/prost-codec",
   "txn_types/prost-codec",
-  "encryption/prost-codec",
 ]
 protobuf-codec = [
   "engine/protobuf-codec",
@@ -48,7 +47,6 @@ protobuf-codec = [
   "raftstore/protobuf-codec",
   "sst_importer/protobuf-codec",
   "txn_types/protobuf-codec",
-  "encryption/protobuf-codec",
   "log_wrappers/protobuf-codec"
 ]
 testexport = ["raftstore/testexport"]
@@ -70,7 +68,6 @@ crc32fast = "1.2"
 crc64fast = "0.1"
 crossbeam = "0.8"
 derive_more = "0.99.3"
-encryption = { path = "components/encryption" }
 engine = { path = "components/engine" }
 engine_panic = { path = "components/engine_panic", optional = true }
 engine_rocks = { path = "components/engine_rocks" }
@@ -208,7 +205,6 @@ members = [
   "components/cdc",
   "components/raftstore",
   "components/into_other",
-  "components/encryption",
   "components/error_code",
 ]
 default-members = ["cmd"]

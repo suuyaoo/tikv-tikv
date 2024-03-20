@@ -166,10 +166,6 @@ quick_error! {
             description(err.description())
             display("SstImporter {}", err)
         }
-        Encryption(err: encryption::Error) {
-            from()
-            display("Encryption {}", err)
-        }
     }
 }
 
@@ -307,7 +303,6 @@ impl ErrorCodeExt for Error {
             Error::Transport(_) => error_code::raftstore::TRANSPORT,
             Error::Snapshot(e) => e.error_code(),
             Error::SstImporter(e) => e.error_code(),
-            Error::Encryption(e) => e.error_code(),
             #[cfg(feature = "prost-codec")]
             Error::ProstDecode(_) => error_code::raftstore::PROTOBUF,
             #[cfg(feature = "prost-codec")]

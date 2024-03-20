@@ -6,7 +6,6 @@ extern crate test;
 #[macro_use]
 extern crate slog_global;
 
-pub mod encryption;
 mod kv_generator;
 mod logging;
 mod macros;
@@ -17,7 +16,6 @@ use rand::Rng;
 use std::env;
 use std::sync::atomic::{AtomicU16, Ordering};
 
-pub use crate::encryption::*;
 pub use crate::kv_generator::*;
 pub use crate::logging::*;
 pub use crate::macros::*;

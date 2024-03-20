@@ -42,7 +42,6 @@ crc32fast = "1.2"
 crossbeam = "0.8"
 engine = { path = "../engine" }
 engine_rocks = { path = "../engine_rocks" }
-encryption = { path = "../encryption" }
 engine_traits = { path = "../engine_traits" }
 error_code = { path = "../error_code" }
 fail = "0.4"

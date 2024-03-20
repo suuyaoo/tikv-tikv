@@ -532,7 +532,6 @@ dependencies = [
  "cdc",
  "chrono",
  "clap",
- "encryption",
  "engine",
  "engine_rocks",
  "engine_traits",
@@ -964,48 +963,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "encryption"
-version = "0.0.1"
-dependencies = [
- "byteorder",
- "bytes 0.4.12",
- "configuration",
- "crc32fast",
- "crossbeam",
- "engine_traits",
- "error_code",
- "fail",
- "failure",
- "futures 0.3.8",
- "futures-util",
- "hex 0.4.2",
- "kvproto",
- "lazy_static",
- "matches",
- "openssl",
- "prometheus",
- "protobuf",
- "rand 0.7.3",
- "rust-ini",
- "serde",
- "serde_derive",
- "slog",
- "slog-global",
- "structopt",
- "tempfile",
- "test_util",
- "tikv_alloc",
- "tikv_util",
- "tokio 0.2.13",
- "toml",
-]
-
-[[package]]
 name = "engine"
 version = "0.0.1"
 dependencies = [
  "configuration",
- "encryption",
  "engine_traits",
  "hex 0.4.2",
  "kvproto",
@@ -1044,7 +1005,6 @@ version = "0.0.1"
 dependencies = [
  "coarsetime",
  "configuration",
- "encryption",
  "engine",
  "engine_traits",
  "fail",
@@ -1891,7 +1851,6 @@ dependencies = [
  "libtitan_sys",
  "libz-sys",
  "lz4-sys",
- "openssl-sys",
  "snappy-sys",
  "tikv-jemalloc-sys",
  "zstd-sys",
@@ -2864,7 +2823,6 @@ dependencies = [
  "configuration",
  "crc32fast",
  "crossbeam",
- "encryption",
  "engine",
  "engine_rocks",
  "engine_traits",
@@ -3355,7 +3313,6 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 name = "security"
 version = "0.0.1"
 dependencies = [
- "encryption",
  "grpcio",
  "serde",
  "serde_derive",
@@ -3609,7 +3566,6 @@ name = "sst_importer"
 version = "0.1.0"
 dependencies = [
  "crc32fast",
- "encryption",
  "engine_rocks",
  "engine_traits",
  "error_code",
@@ -3804,7 +3760,6 @@ dependencies = [
 name = "test_raftstore"
 version = "0.0.1"
 dependencies = [
- "encryption",
  "engine",
  "engine_rocks",
  "engine_traits",
@@ -3861,7 +3816,6 @@ dependencies = [
 name = "test_util"
 version = "0.0.1"
 dependencies = [
- "encryption",
  "fail",
  "grpcio",
  "kvproto",
@@ -3889,7 +3843,6 @@ dependencies = [
  "criterion-cpu-time",
  "criterion-papi",
  "crossbeam",
- "encryption",
  "engine",
  "engine_rocks",
  "engine_traits",
@@ -3988,7 +3941,6 @@ dependencies = [
  "crc64fast",
  "crossbeam",
  "derive_more",
- "encryption",
  "engine",
  "engine_panic",
  "engine_rocks",

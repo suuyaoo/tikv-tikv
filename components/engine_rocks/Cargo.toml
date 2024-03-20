@@ -13,7 +13,6 @@ sse = ["rocksdb/sse"]
 failpoints = ["fail/failpoints"]
 
 [dependencies]
-encryption = { path = "../encryption" }
 engine = { path = "../engine" }
 engine_traits = { path = "../engine_traits" }
 num_cpus = "1"
@@ -34,7 +33,6 @@ fail = "0.4"
 [dependencies.rocksdb]
 git = "https://github.com/tikv/rust-rocksdb.git"
 package = "rocksdb"
-features = ["encryption"]
 branch = "tikv-4.x"
 
 [dev-dependencies]

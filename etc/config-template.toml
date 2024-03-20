@@ -785,6 +785,7 @@
 # ca-path = ""
 # cert-path = ""
 # key-path = ""
+# cipher-file = ""
 # cert-allowed-cn = []
 #
 ## Avoid outputing data (e.g. user keys) to info log. It currently does not avoid printing

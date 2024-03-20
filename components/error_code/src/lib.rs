@@ -32,7 +32,6 @@ pub const UNKNOWN: ErrorCode = ErrorCode {
 
 pub mod codec;
 pub mod coprocessor;
-pub mod encryption;
 pub mod engine;
 pub mod pd;
 pub mod raft;

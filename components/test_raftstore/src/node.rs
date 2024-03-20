@@ -12,7 +12,6 @@ use raft::eraftpb::MessageType;
 use raft::SnapshotStatus;
 
 use super::*;
-use encryption::DataKeyManager;
 use engine::*;
 use engine_rocks::{Compat, RocksEngine};
 use engine_traits::Peekable;
@@ -170,7 +169,6 @@ impl Simulator for NodeCluster {
         cfg: TiKvConfig,
         engines: Engines,
         store_meta: Arc<Mutex<StoreMeta>>,
-        key_manager: Option<Arc<DataKeyManager>>,
         router: RaftRouter<RocksEngine>,
         system: RaftBatchSystem,
     ) -> ServerResult<u64> {
@@ -198,7 +196,6 @@ impl Simulator for NodeCluster {
         {
             let tmp = Builder::new().prefix("test_cluster").tempdir().unwrap();
             let snap_mgr = SnapManagerBuilder::default()
-                .encryption_key_manager(key_manager)
                 .build(tmp.path().to_str().unwrap(), Some(router.clone()));
             (snap_mgr, Some(tmp))
         } else {
@@ -216,7 +213,7 @@ impl Simulator for NodeCluster {
 
         let importer = {
             let dir = Path::new(engines.kv.path()).join("import-sst");
-            Arc::new(SSTImporter::new(dir, None).unwrap())
+            Arc::new(SSTImporter::new(dir).unwrap())
         };
 
         let local_reader =

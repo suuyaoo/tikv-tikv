@@ -9,7 +9,6 @@ use std::io::Read;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
-use encryption::EncryptionConfig;
 use grpcio::{
     CertificateRequestType, Channel, ChannelBuilder, ChannelCredentialsBuilder, RpcContext,
     ServerBuilder, ServerCredentialsBuilder, ServerCredentialsFetcher,
@@ -27,9 +26,9 @@ pub struct SecurityConfig {
     // Test purpose only.
     #[serde(skip)]
     pub override_ssl_target: String,
+    pub cipher_file: String,
     pub cert_allowed_cn: HashSet<String>,
     pub redact_info_log: Option<bool>,
-    pub encryption: EncryptionConfig,
 }
 
 impl Default for SecurityConfig {
@@ -39,9 +38,9 @@ impl Default for SecurityConfig {
             cert_path: String::new(),
             key_path: String::new(),
             override_ssl_target: String::new(),
+            cipher_file: String::new(),
             cert_allowed_cn: HashSet::default(),
             redact_info_log: None,
-            encryption: EncryptionConfig::default(),
         }
     }
 }
@@ -167,6 +166,10 @@ impl SecurityManager {
                 CertificateRequestType::RequestAndRequireClientCertificateAndVerify,
             )
         }
+    }
+
+    pub fn cipher_file(&self) -> &str {
+        &self.cfg.cipher_file
     }
 
     pub fn cert_allowed_cn(&self) -> &HashSet<String> {

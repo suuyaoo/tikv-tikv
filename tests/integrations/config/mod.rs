@@ -7,13 +7,11 @@ use std::path::PathBuf;
 use slog::Level;
 
 use batch_system::Config as BatchSystemConfig;
-use encryption::{EncryptionConfig, FileConfig, MasterKeyConfig};
 
 use engine::rocks::{
     CompactionPriority, DBCompactionStyle, DBCompressionType, DBRateLimiterMode, DBRecoveryMode,
 };
 use engine_rocks::config::{BlobRunMode, CompressionType, PerfLevel};
-use kvproto::encryptionpb::EncryptionMethod;
 use pd_client::Config as PdConfig;
 use raftstore::coprocessor::Config as CopConfig;
 use raftstore::store::Config as RaftstoreConfig;
@@ -577,20 +575,9 @@ fn test_serde_custom_tikv_config() {
         cert_path: "invalid path".to_owned(),
         key_path: "invalid path".to_owned(),
         override_ssl_target: "".to_owned(),
+        cipher_file: "invalid path".to_owned(),
         cert_allowed_cn,
         redact_info_log: Some(true),
-        encryption: EncryptionConfig {
-            data_encryption_method: EncryptionMethod::Aes128Ctr,
-            data_key_rotation_period: ReadableDuration::days(14),
-            enable_file_dictionary_log: false,
-            file_dictionary_rewrite_threshold: 123456,
-            master_key: MasterKeyConfig::File {
-                config: FileConfig {
-                    path: "/master/key/path".to_owned(),
-                },
-            },
-            previous_master_key: MasterKeyConfig::Plaintext,
-        },
     };
     value.backup = BackupConfig {
         num_threads: 456,

@@ -22,7 +22,6 @@ prost-codec = [
 
 [dependencies]
 crc32fast = "1.2"
-encryption = { path = "../encryption" }
 engine_rocks = { path = "../engine_rocks" }
 engine_traits = { path = "../engine_traits" }
 error_code = { path = "../error_code" }

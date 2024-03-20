@@ -55,8 +55,6 @@ extern crate matches;
 #[cfg(test)]
 extern crate test;
 
-extern crate encryption;
-
 pub mod config;
 pub mod import;
 pub mod read_pool;

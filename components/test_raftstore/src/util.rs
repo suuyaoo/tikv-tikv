@@ -5,11 +5,9 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 use std::{thread, u64};
 
-use encryption::{DataKeyManager, FileConfig, MasterKeyConfig};
 use engine::rocks::DB;
 use engine::*;
 use engine_rocks::config::BlobRunMode;
-use engine_rocks::encryption::get_env;
 use engine_rocks::{CompactionListener, RocksCompactionJobInfo};
 use engine_rocks::{Compat, RocksEngine};
 use engine_traits::{Iterable, Peekable};
@@ -17,7 +15,6 @@ use engine_traits::{ALL_CFS, CF_DEFAULT, CF_RAFT};
 use futures03::compat::Compat01As03;
 use futures03::executor::block_on;
 use grpcio::{ChannelBuilder, Environment};
-use kvproto::encryptionpb::EncryptionMethod;
 use kvproto::kvrpcpb::*;
 use kvproto::metapb::{self, RegionEpoch};
 use kvproto::pdpb::{
@@ -493,21 +490,14 @@ pub fn create_test_engine(
     // TODO: pass it in for all cases.
     router: Option<RaftRouter<RocksEngine>>,
     cfg: &TiKvConfig,
-) -> (Engines, Option<Arc<DataKeyManager>>, TempDir) {
+) -> (Engines, TempDir) {
     let dir = Builder::new().prefix("test_cluster").tempdir().unwrap();
-    let key_manager =
-        DataKeyManager::from_config(&cfg.security.encryption, dir.path().to_str().unwrap())
-            .unwrap()
-            .map(|key_manager| Arc::new(key_manager));
-
-    let env = get_env(key_manager.clone(), None).unwrap();
     let cache = cfg.storage.block_cache.build_shared_cache();
 
     let kv_path = dir.path().join(DEFAULT_ROCKSDB_SUB_DIR);
     let kv_path_str = kv_path.to_str().unwrap();
 
     let mut kv_db_opt = cfg.rocksdb.build_opt();
-    kv_db_opt.set_env(env.clone());
 
     if let Some(router) = router {
         let router = Mutex::new(router);
@@ -531,15 +521,13 @@ pub fn create_test_engine(
     let raft_path = dir.path().join("raft");
     let raft_path_str = raft_path.to_str().unwrap();
 
-    let mut raft_db_opt = cfg.raftdb.build_opt();
-    raft_db_opt.set_env(env);
-
+    let raft_db_opt = cfg.raftdb.build_opt();
     let raft_cfs_opt = cfg.raftdb.build_cf_opts(&cache);
     let raft_engine =
         Arc::new(rocks::util::new_engine_opt(raft_path_str, raft_db_opt, raft_cfs_opt).unwrap());
 
     let engines = Engines::new(engine, raft_engine, cache.is_some());
-    (engines, key_manager, dir)
+    (engines, dir)
 }
 
 pub fn configure_for_request_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
@@ -625,20 +613,6 @@ pub fn configure_for_enable_titan<T: Simulator>(
 
 pub fn configure_for_disable_titan<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.cfg.rocksdb.titan.enabled = false;
-}
-
-pub fn configure_for_encryption<T: Simulator>(cluster: &mut Cluster<T>) {
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let master_key_file = manifest_dir.join("src/master-key.data");
-
-    let cfg = &mut cluster.cfg.security.encryption;
-    cfg.data_encryption_method = EncryptionMethod::Aes128Ctr;
-    cfg.data_key_rotation_period = ReadableDuration(Duration::from_millis(100));
-    cfg.master_key = MasterKeyConfig::File {
-        config: FileConfig {
-            path: master_key_file.to_str().unwrap().to_owned(),
-        },
-    }
 }
 
 /// Keep putting random kvs until specified size limit is reached.

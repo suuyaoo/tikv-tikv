@@ -17,7 +17,6 @@ use kvproto::tikvpb::TikvClient;
 use tempfile::{Builder, TempDir};
 
 use super::*;
-use encryption::DataKeyManager;
 use engine::Engines;
 use engine_rocks::{Compat, RocksEngine};
 use raftstore::coprocessor::{CoprocessorHost, RegionInfoAccessor};
@@ -131,7 +130,6 @@ impl Simulator for ServerCluster {
         mut cfg: TiKvConfig,
         engines: Engines,
         store_meta: Arc<Mutex<StoreMeta>>,
-        key_manager: Option<Arc<DataKeyManager>>,
         router: RaftRouter<RocksEngine>,
         system: RaftBatchSystem,
     ) -> ServerResult<u64> {
@@ -204,7 +202,7 @@ impl Simulator for ServerCluster {
         // Create import service.
         let importer = {
             let dir = Path::new(engines.kv.path()).join("import-sst");
-            Arc::new(SSTImporter::new(dir, key_manager.clone()).unwrap())
+            Arc::new(SSTImporter::new(dir).unwrap())
         };
         let import_service = ImportSSTService::new(
             cfg.import.clone(),
@@ -233,7 +231,6 @@ impl Simulator for ServerCluster {
         // Create pd client, snapshot manager, server.
         let (worker, resolver) = resolve::new_resolver(Arc::clone(&self.pd_client)).unwrap();
         let snap_mgr = SnapManagerBuilder::default()
-            .encryption_key_manager(key_manager)
             .build(tmp_str, Some(router.clone()));
         let server_cfg = Arc::new(cfg.server.clone());
         let mut server = None;

@@ -77,7 +77,6 @@ pub use event_listener::*;
 
 pub mod config;
 pub use config::*;
-pub mod encryption;
 
 pub use rocksdb::set_perf_level;
 pub use rocksdb::PerfContext;
