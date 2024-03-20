@@ -269,7 +269,6 @@ fn test_serde_custom_tikv_config() {
             force_consistency_checks: true,
             prop_size_index_distance: 4000000,
             prop_keys_index_distance: 40000,
-            enable_doubly_skiplist: false,
         },
         writecf: WriteCfConfig {
             block_size: ReadableSize::kb(12),
@@ -312,7 +311,6 @@ fn test_serde_custom_tikv_config() {
             force_consistency_checks: true,
             prop_size_index_distance: 4000000,
             prop_keys_index_distance: 40000,
-            enable_doubly_skiplist: true,
         },
         lockcf: LockCfConfig {
             block_size: ReadableSize::kb(12),
@@ -355,7 +353,6 @@ fn test_serde_custom_tikv_config() {
             force_consistency_checks: true,
             prop_size_index_distance: 4000000,
             prop_keys_index_distance: 40000,
-            enable_doubly_skiplist: true,
         },
         raftcf: RaftCfConfig {
             block_size: ReadableSize::kb(12),
@@ -398,7 +395,6 @@ fn test_serde_custom_tikv_config() {
             force_consistency_checks: true,
             prop_size_index_distance: 4000000,
             prop_keys_index_distance: 40000,
-            enable_doubly_skiplist: true,
         },
     };
     value.raftdb = RaftDbConfig {
@@ -468,7 +464,6 @@ fn test_serde_custom_tikv_config() {
             force_consistency_checks: true,
             prop_size_index_distance: 4000000,
             prop_keys_index_distance: 40000,
-            enable_doubly_skiplist: true,
         },
     };
     value.storage = StorageConfig {

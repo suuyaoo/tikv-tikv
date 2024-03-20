@@ -176,8 +176,6 @@ macro_rules! cf_config {
             pub prop_size_index_distance: u64,
             #[config(skip)]
             pub prop_keys_index_distance: u64,
-            #[config(skip)]
-            pub enable_doubly_skiplist: bool,
         }
 
         impl $name {
@@ -284,9 +282,6 @@ macro_rules! write_into_metrics {
         $metrics
             .with_label_values(&[$tag, "force_consistency_checks"])
             .set(($cf.force_consistency_checks as i32).into());
-        $metrics
-            .with_label_values(&[$tag, "enable_doubly_skiplist"])
-            .set(($cf.enable_doubly_skiplist as i32).into());
     }};
 }
 
@@ -337,9 +332,6 @@ macro_rules! build_cf_opt {
         cf_opts.set_hard_pending_compaction_bytes_limit($opt.hard_pending_compaction_bytes_limit.0);
         cf_opts.set_optimize_filters_for_hits($opt.optimize_filters_for_hits);
         cf_opts.set_force_consistency_checks($opt.force_consistency_checks);
-        if $opt.enable_doubly_skiplist {
-            cf_opts.set_doubly_skiplist();
-        }
         cf_opts
     }};
 }
@@ -389,7 +381,6 @@ impl Default for DefaultCfConfig {
             force_consistency_checks: false,
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
-            enable_doubly_skiplist: true,
         }
     }
 }
@@ -451,7 +442,6 @@ impl Default for WriteCfConfig {
             force_consistency_checks: false,
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
-            enable_doubly_skiplist: true,
         }
     }
 }
@@ -515,7 +505,6 @@ impl Default for LockCfConfig {
             force_consistency_checks: false,
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
-            enable_doubly_skiplist: true,
         }
     }
 }
@@ -574,7 +563,6 @@ impl Default for RaftCfConfig {
             force_consistency_checks: false,
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
-            enable_doubly_skiplist: true,
         }
     }
 }
@@ -832,7 +820,6 @@ impl Default for RaftDefaultCfConfig {
             force_consistency_checks: false,
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
-            enable_doubly_skiplist: true,
         }
     }
 }
