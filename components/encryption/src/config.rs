@@ -49,29 +49,6 @@ pub struct FileConfig {
     pub path: String,
 }
 
-#[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq, Eq, Configuration)]
-#[serde(default)]
-#[serde(rename_all = "kebab-case")]
-pub struct KmsConfig {
-    pub key_id: String,
-
-    // Providing access_key and secret_access_key is recommended as it has
-    // security risk.
-    #[doc(hidden)]
-    // We don's want to write access_key and secret_access_key to config file
-    // accidentally.
-    #[serde(skip_serializing)]
-    #[config(skip)]
-    pub access_key: String,
-    #[doc(hidden)]
-    #[serde(skip_serializing)]
-    #[config(skip)]
-    pub secret_access_key: String,
-
-    pub region: String,
-    pub endpoint: String,
-}
-
 #[cfg(test)]
 #[derive(Clone, Debug)]
 pub struct Mock(pub Arc<dyn Backend>);
@@ -97,12 +74,6 @@ pub enum MasterKeyConfig {
     File {
         #[serde(flatten)]
         config: FileConfig,
-    },
-
-    #[serde(rename_all = "kebab-case")]
-    Kms {
-        #[serde(flatten)]
-        config: KmsConfig,
     },
 
     #[cfg(test)]
@@ -175,49 +146,3 @@ mod encryption_method_serde {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_kms_config() {
-        let kms_cfg = EncryptionConfig {
-            data_encryption_method: EncryptionMethod::Aes128Ctr,
-            data_key_rotation_period: ReadableDuration::days(14),
-            master_key: MasterKeyConfig::Kms {
-                config: KmsConfig {
-                    key_id: "key_id".to_owned(),
-                    access_key: "access_key".to_owned(),
-                    secret_access_key: "secret_access_key".to_owned(),
-                    region: "region".to_owned(),
-                    endpoint: "endpoint".to_owned(),
-                },
-            },
-            previous_master_key: MasterKeyConfig::Plaintext,
-            enable_file_dictionary_log: true,
-            file_dictionary_rewrite_threshold: 1000000,
-        };
-        let kms_str = r#"
-        data-encryption-method = "aes128-ctr"
-        data-key-rotation-period = "14d"
-        enable-file-dictionary-log = true
-        file-dictionary-rewrite-threshold = 1000000
-        [previous-master-key]
-        type = "plaintext"
-        [master-key]
-        type = "kms"
-        key-id = "key_id"
-        access-key = "access_key"
-        secret-access-key = "secret_access_key"
-        region = "region"
-        endpoint = "endpoint"
-        "#;
-        let cfg: EncryptionConfig = toml::from_str(kms_str).unwrap();
-        assert_eq!(
-            cfg,
-            kms_cfg,
-            "\n{}\n",
-            toml::to_string_pretty(&kms_cfg).unwrap()
-        );
-    }
-}

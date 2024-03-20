@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 /// Provide API to encrypt/decrypt key dictionary content.
 ///
-/// Can be back by KMS, or a key read from a file. If file is used, it will
+/// Can be back by a key read from a file. If file is used, it will
 /// prefix the result with the IV (nonce + initial counter) on encrypt,
 /// and decode the IV on decrypt.
 pub trait Backend: Sync + Send + 'static {
@@ -27,9 +27,6 @@ use self::mem::MemAesGcmBackend;
 
 mod file;
 pub use self::file::FileBackend;
-
-mod kms;
-pub use self::kms::KmsBackend;
 
 mod metadata;
 use self::metadata::*;
@@ -78,7 +75,6 @@ pub(crate) fn create_backend(config: &MasterKeyConfig) -> Result<Arc<dyn Backend
         MasterKeyConfig::File { config } => {
             Arc::new(FileBackend::new(Path::new(&config.path))?) as _
         }
-        MasterKeyConfig::Kms { config } => Arc::new(KmsBackend::new(config.clone())?) as _,
         #[cfg(test)]
         MasterKeyConfig::Mock(Mock(mock)) => mock.clone() as _,
     })

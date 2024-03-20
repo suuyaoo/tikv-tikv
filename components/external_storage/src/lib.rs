@@ -9,7 +9,6 @@
 extern crate slog_global;
 #[allow(unused_extern_crates)]
 extern crate tikv_alloc;
-#[macro_use]
 extern crate fail;
 
 use std::io;
@@ -22,17 +21,13 @@ use futures_io::AsyncRead;
 use kvproto::backup::StorageBackend_oneof_backend as Backend;
 #[cfg(feature = "prost-codec")]
 use kvproto::backup::{storage_backend::Backend, Local};
-use kvproto::backup::{Gcs, Noop, StorageBackend, S3};
+use kvproto::backup::{Noop, StorageBackend};
 use tikv_util::time::Instant;
 
 mod local;
 pub use local::LocalStorage;
 mod noop;
 pub use noop::NoopStorage;
-mod s3;
-pub use s3::S3Storage;
-mod gcs;
-pub use gcs::GCSStorage;
 mod util;
 pub use util::block_on_external_io;
 mod metrics;
@@ -49,8 +44,6 @@ pub fn create_storage(backend: &StorageBackend) -> io::Result<Arc<dyn ExternalSt
             ("local", LocalStorage::new(p).map(|s| Arc::new(s) as _))
         }
         Some(Backend::Noop(_)) => ("noop", Ok(Arc::new(NoopStorage::default()) as _)),
-        Some(Backend::S3(config)) => ("s3", S3Storage::new(config).map(|s| Arc::new(s) as _)),
-        Some(Backend::Gcs(config)) => ("gcs", GCSStorage::new(config).map(|s| Arc::new(s) as _)),
         _ => {
             let u = url_of_backend(backend);
             error!("unknown storage"; "scheme" => u.scheme());
@@ -76,20 +69,6 @@ pub fn url_of_backend(backend: &StorageBackend) -> url::Url {
         }
         Some(Backend::Noop(_)) => {
             u.set_scheme("noop").unwrap();
-        }
-        Some(Backend::S3(s3)) => {
-            u.set_scheme("s3").unwrap();
-            if let Err(e) = u.set_host(Some(&s3.bucket)) {
-                warn!("ignoring invalid S3 bucket name"; "bucket" => &s3.bucket, "error" => %e);
-            }
-            u.set_path(s3.get_prefix());
-        }
-        Some(Backend::Gcs(gcs)) => {
-            u.set_scheme("gcs").unwrap();
-            if let Err(e) = u.set_host(Some(&gcs.bucket)) {
-                warn!("ignoring invalid GCS bucket name"; "bucket" => &gcs.bucket, "error" => %e);
-            }
-            u.set_path(gcs.get_prefix());
         }
         None => {}
     }
@@ -126,38 +105,6 @@ pub fn make_noop_backend() -> StorageBackend {
     {
         let mut backend = StorageBackend::default();
         backend.set_noop(noop);
-        backend
-    }
-}
-
-// Creates a S3 `StorageBackend`
-pub fn make_s3_backend(config: S3) -> StorageBackend {
-    #[cfg(feature = "prost-codec")]
-    {
-        StorageBackend {
-            backend: Some(Backend::S3(config)),
-        }
-    }
-    #[cfg(feature = "protobuf-codec")]
-    {
-        let mut backend = StorageBackend::default();
-        backend.set_s3(config);
-        backend
-    }
-}
-
-// Creates a GCS `StorageBackend`
-pub fn make_gcs_backend(config: Gcs) -> StorageBackend {
-    #[cfg(feature = "prost-codec")]
-    {
-        StorageBackend {
-            backend: Some(Backend::Gcs(config)),
-        }
-    }
-    #[cfg(feature = "protobuf-codec")]
-    {
-        let mut backend = StorageBackend::default();
-        backend.set_gcs(config);
         backend
     }
 }
@@ -219,37 +166,10 @@ mod tests {
 
     #[test]
     fn test_url_of_backend() {
-        use kvproto::backup::S3;
-
         let backend = make_local_backend(Path::new("/tmp/a"));
         assert_eq!(url_of_backend(&backend).to_string(), "local:///tmp/a");
 
         let backend = make_noop_backend();
         assert_eq!(url_of_backend(&backend).to_string(), "noop:///");
-
-        let mut backend = StorageBackend::default();
-        backend.backend = Some(Backend::S3(S3 {
-            bucket: "bucket".to_owned(),
-            prefix: "/backup 01/prefix/".to_owned(),
-            endpoint: "http://endpoint.com".to_owned(),
-            // ^ only 'bucket' and 'prefix' should be visible in url_of_backend()
-            ..S3::default()
-        }));
-        assert_eq!(
-            url_of_backend(&backend).to_string(),
-            "s3://bucket/backup%2001/prefix/"
-        );
-
-        backend.backend = Some(Backend::Gcs(Gcs {
-            bucket: "bucket".to_owned(),
-            prefix: "/backup 02/prefix/".to_owned(),
-            endpoint: "http://endpoint.com".to_owned(),
-            // ^ only 'bucket' and 'prefix' should be visible in url_of_backend()
-            ..Gcs::default()
-        }));
-        assert_eq!(
-            url_of_backend(&backend).to_string(),
-            "gcs://bucket/backup%2002/prefix/"
-        );
     }
 }

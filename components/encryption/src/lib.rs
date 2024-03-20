@@ -32,4 +32,4 @@ pub use self::errors::{Error, Result};
 pub use self::file_dict_file::FileDictionaryFile;
 pub use self::io::{create_aes_ctr_crypter, DecrypterReader, EncrypterReader, EncrypterWriter};
 pub use self::manager::DataKeyManager;
-pub use self::master_key::{Backend, FileBackend, KmsBackend};
+pub use self::master_key::{Backend, FileBackend};
