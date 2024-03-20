@@ -58,7 +58,6 @@ extern crate test;
 extern crate encryption;
 
 pub mod config;
-pub mod coprocessor;
 pub mod import;
 pub mod read_pool;
 pub mod server;

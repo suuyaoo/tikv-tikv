@@ -221,7 +221,6 @@ impl<E: Engine, R: FlowStatsReporter> ReadPoolRunner<E, R> {
 
     fn flush_metrics(&self) {
         crate::storage::metrics::tls_flush(&self.reporter);
-        crate::coprocessor::metrics::tls_flush(&self.reporter);
     }
 }
 

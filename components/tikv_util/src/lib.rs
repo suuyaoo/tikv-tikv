@@ -58,6 +58,9 @@ pub mod time;
 pub mod timer;
 pub mod worker;
 
+pub mod checksum;
+pub use checksum::checksum_crc64_xor;
+
 static PANIC_WHEN_UNEXPECTED_KEY_OR_DATA: AtomicBool = AtomicBool::new(false);
 const SPACE_PLACEHOLDER_FILE: &str = "space_placeholder_file";
 

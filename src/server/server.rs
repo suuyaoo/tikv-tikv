@@ -14,7 +14,6 @@ use kvproto::tikvpb::*;
 use tokio_threadpool::{Builder as ThreadPoolBuilder, ThreadPool};
 use tokio_timer::timer::Handle;
 
-use crate::coprocessor::Endpoint;
 use crate::server::gc_worker::GcWorker;
 use crate::storage::lock_manager::LockManager;
 use crate::storage::{Engine, Storage};
@@ -73,7 +72,6 @@ impl<T: RaftStoreRouter, S: StoreAddrResolver + 'static> Server<T, S> {
         cfg: &Arc<Config>,
         security_mgr: &Arc<SecurityManager>,
         storage: Storage<E, L>,
-        cop: Endpoint<E>,
         raft_router: T,
         resolver: S,
         snap_mgr: SnapManager,
@@ -106,7 +104,6 @@ impl<T: RaftStoreRouter, S: StoreAddrResolver + 'static> Server<T, S> {
         let kv_service = KvService::new(
             storage,
             gc_worker,
-            cop,
             raft_router.clone(),
             snap_worker.scheduler(),
             Arc::clone(&grpc_thread_load),
@@ -294,8 +291,6 @@ mod tests {
 
     use super::super::resolve::{Callback as ResolveCallback, StoreAddrResolver};
     use super::super::{Config, Result};
-    use crate::config::CoprReadPoolConfig;
-    use crate::coprocessor::{self, readpool_impl};
     use crate::storage::TestStorageBuilder;
     use raftstore::store::transport::Transport;
     use raftstore::store::*;
@@ -403,18 +398,11 @@ mod tests {
         let cfg = Arc::new(cfg);
         let security_mgr = Arc::new(SecurityManager::new(&SecurityConfig::default()).unwrap());
 
-        let cop_read_pool = ReadPool::from(readpool_impl::build_read_pool_for_test(
-            &CoprReadPoolConfig::default_for_test(),
-            storage.get_engine(),
-        ));
-        let cop = coprocessor::Endpoint::new(&cfg, cop_read_pool.handle());
-
         let addr = Arc::new(Mutex::new(None));
         let mut server = Server::new(
             &cfg,
             &security_mgr,
             storage,
-            cop,
             router,
             MockResolver {
                 quick_fail: Arc::clone(&quick_fail),

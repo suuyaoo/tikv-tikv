@@ -34,8 +34,6 @@ prost-codec = [
   "raft/prost-codec",
   "raftstore/prost-codec",
   "sst_importer/prost-codec",
-  "tidb_query/prost-codec",
-  "tipb/prost-codec",
   "txn_types/prost-codec",
   "encryption/prost-codec",
 ]
@@ -49,8 +47,6 @@ protobuf-codec = [
   "raft/protobuf-codec",
   "raftstore/protobuf-codec",
   "sst_importer/protobuf-codec",
-  "tidb_query/protobuf-codec",
-  "tipb/protobuf-codec",
   "txn_types/protobuf-codec",
   "encryption/protobuf-codec",
   "log_wrappers/protobuf-codec"
@@ -134,12 +130,9 @@ prometheus = { version = "0.8", features = ["nightly", "push"] }
 sst_importer = { path = "components/sst_importer" }
 sysinfo = { git = "https://github.com/tikv/sysinfo.git", branch = "tikv-4.0"}
 tempfile = "3.0"
-tidb_query = { path = "components/tidb_query" }
-tidb_query_datatype = { path = "components/tidb_query_datatype" }
 tikv_alloc = { path = "components/tikv_alloc" }
 tikv_util = { path = "components/tikv_util" }
 time = "0.1"
-tipb = { git = "https://github.com/pingcap/tipb.git", default-features = false }
 tokio = { version = "0.2", features = ["full"] }
 tokio-tcp = "0.1"
 tokio-core = "0.1"
@@ -194,7 +187,6 @@ members = [
   "cmd",
   "components/test_raftstore",
   "components/test_storage",
-  "components/test_coprocessor",
   "components/test_sst_importer",
   "components/test_util",
   "components/test_pd",
@@ -203,12 +195,8 @@ members = [
   "components/codec",
   "components/configuration",
   "components/panic_hook",
-  "components/tipb_helper",
   "components/log_wrappers",
   "components/tikv_util",
-  "components/tidb_query",
-  "components/tidb_query_datatype",
-  "components/tidb_query_codegen",
   "components/pd_client",
   "components/external_storage",
   "components/backup",

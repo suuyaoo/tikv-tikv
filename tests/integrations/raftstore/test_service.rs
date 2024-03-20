@@ -5,7 +5,6 @@ use std::sync::*;
 
 use futures::{future, Future, Stream};
 use grpcio::{Error, RpcStatusCode};
-use kvproto::coprocessor::*;
 use kvproto::kvrpcpb::*;
 use kvproto::raft_serverpb::*;
 use kvproto::{debugpb, metapb, raft_serverpb};
@@ -20,7 +19,6 @@ use raftstore::store::fsm::store::StoreMeta;
 use raftstore::store::{AutoSplitController, SnapManager};
 use tempfile::Builder;
 use test_raftstore::*;
-use tikv::coprocessor::REQ_TYPE_DAG;
 use tikv::import::SSTImporter;
 use tikv::storage::mvcc::{Lock, LockType, TimeStamp};
 use tikv_util::worker::{FutureWorker, Worker};
@@ -396,15 +394,6 @@ fn test_mvcc_resolve_lock_gc_and_delete() {
 }
 
 // raft related RPC is tested as parts of test_snapshot.rs, so skip here.
-
-#[test]
-fn test_coprocessor() {
-    let (_cluster, client, _) = must_new_cluster_and_kv_client();
-    // SQL push down commands
-    let mut req = Request::default();
-    req.set_tp(REQ_TYPE_DAG);
-    client.coprocessor(&req).unwrap();
-}
 
 #[test]
 fn test_split_region() {

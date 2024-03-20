@@ -10,12 +10,12 @@ use external_storage::ExternalStorage;
 use futures_util::io::AllowStdIo;
 use kvproto::backup::File;
 use kvproto::metapb::Region;
-use tikv::coprocessor::checksum_crc64_xor;
 use tikv::storage::txn::TxnEntry;
 use tikv_util::{
     self, box_err,
     file::Sha256Reader,
     time::{Instant, Limiter},
+    checksum::checksum_crc64_xor,
 };
 use txn_types::KvPair;
 

@@ -48,7 +48,6 @@ use std::{
 };
 use tikv::{
     config::{ConfigController, DBConfigManger, DBType, TiKvConfig},
-    coprocessor,
     import::{ImportSSTService, SSTImporter},
     read_pool::{build_yatp_read_pool, ReadPool},
     server::{
@@ -510,18 +509,6 @@ impl TiKVServer {
             .encryption_key_manager(self.encryption_key_manager.clone())
             .build(snap_path, Some(self.router.clone()));
 
-        // Create coprocessor endpoint.
-        let cop_read_pool_handle = if self.config.readpool.coprocessor.use_unified_pool() {
-            unified_read_pool.as_ref().unwrap().handle()
-        } else {
-            let cop_read_pools = ReadPool::from(coprocessor::readpool_impl::build_read_pool(
-                &self.config.readpool.coprocessor,
-                pd_sender,
-                engines.engine.clone(),
-            ));
-            cop_read_pools.handle()
-        };
-
         // Create and register cdc.
         let mut cdc_worker = Box::new(tikv_util::worker::Worker::new("cdc"));
         let cdc_scheduler = cdc_worker.scheduler();
@@ -540,7 +527,6 @@ impl TiKVServer {
             &server_config,
             &self.security_mgr,
             storage,
-            coprocessor::Endpoint::new(&server_config, cop_read_pool_handle),
             engines.raft_router.clone(),
             self.resolver.clone(),
             snap_mgr.clone(),

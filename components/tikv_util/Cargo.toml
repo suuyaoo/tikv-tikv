@@ -16,6 +16,7 @@ codec = { path = "../codec" }
 configuration = { path = "../configuration" }
 chrono = "0.4"
 crc32fast = "1.2"
+crc64fast = "0.1"
 crossbeam = "0.8"
 error_code = { path = "../error_code" }
 derive_more = "0.99.3"

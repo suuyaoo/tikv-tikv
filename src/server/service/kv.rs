@@ -4,7 +4,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use crate::coprocessor::Endpoint;
 use crate::server::gc_worker::GcWorker;
 use crate::server::load_statistics::ThreadLoad;
 use crate::server::metrics::*;
@@ -24,9 +23,8 @@ use futures::future::Either;
 use futures::{future, Future, Sink, Stream};
 use grpcio::{
     ClientStreamingSink, DuplexSink, Error as GrpcError, RequestStream, RpcContext, RpcStatus,
-    RpcStatusCode, ServerStreamingSink, UnarySink, WriteFlags,
+    RpcStatusCode, UnarySink, WriteFlags,
 };
-use kvproto::coprocessor::*;
 use kvproto::errorpb::{Error as RegionError, *};
 use kvproto::kvrpcpb::*;
 use kvproto::raft_cmdpb::{CmdType, RaftCmdRequest, RaftRequestHeader, Request as RaftRequest};
@@ -54,8 +52,6 @@ pub struct Service<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> {
     gc_worker: GcWorker<E>,
     // For handling KV requests.
     storage: Storage<E, L>,
-    // For handling coprocessor requests.
-    cop: Endpoint<E>,
     // For handling raft messages.
     ch: T,
     // For handling snapshot.
@@ -79,7 +75,6 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Service<T, E, L> {
     pub fn new(
         storage: Storage<E, L>,
         gc_worker: GcWorker<E>,
-        cop: Endpoint<E>,
         ch: T,
         snap_scheduler: Scheduler<SnapTask>,
         grpc_thread_load: Arc<ThreadLoad>,
@@ -97,7 +92,6 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Service<T, E, L> {
         Service {
             gc_worker,
             storage,
-            cop,
             ch,
             snap_scheduler,
             grpc_thread_load,
@@ -268,25 +262,6 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
                     "err" => ?e
                 );
                 GRPC_MSG_FAIL_COUNTER.kv_gc.inc();
-            });
-
-        ctx.spawn(future);
-    }
-
-    fn coprocessor(&mut self, ctx: RpcContext<'_>, req: Request, sink: UnarySink<Response>) {
-        if !check_common_name(self.security_mgr.cert_allowed_cn(), &ctx) {
-            return;
-        }
-        let timer = GRPC_MSG_HISTOGRAM_VEC.coprocessor.start_coarse_timer();
-        let future = future_cop(&self.cop, Some(ctx.peer()), req)
-            .and_then(|resp| sink.success(resp).map_err(Error::from))
-            .map(|_| timer.observe_duration())
-            .map_err(move |e| {
-                debug!("kv rpc failed";
-                    "request" => "coprocessor",
-                    "err" => ?e
-                );
-                GRPC_MSG_FAIL_COUNTER.coprocessor.inc();
             });
 
         ctx.spawn(future);
@@ -491,43 +466,6 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
                     "err" => ?e
                 );
                 GRPC_MSG_FAIL_COUNTER.unsafe_destroy_range.inc();
-            });
-
-        ctx.spawn(future);
-    }
-
-    fn coprocessor_stream(
-        &mut self,
-        ctx: RpcContext<'_>,
-        req: Request,
-        sink: ServerStreamingSink<Response>,
-    ) {
-        if !check_common_name(self.security_mgr.cert_allowed_cn(), &ctx) {
-            return;
-        }
-        let timer = GRPC_MSG_HISTOGRAM_VEC
-            .coprocessor_stream
-            .start_coarse_timer();
-
-        let stream = self
-            .cop
-            .parse_and_handle_stream_request(req, Some(ctx.peer()))
-            .map(|resp| (resp, WriteFlags::default().buffer_hint(true)))
-            .map_err(|e| {
-                let code = RpcStatusCode::UNKNOWN;
-                let msg = Some(format!("{:?}", e));
-                GrpcError::RpcFailure(RpcStatus::new(code, msg))
-            });
-        let future = sink
-            .send_all(stream)
-            .map(|_| timer.observe_duration())
-            .map_err(Error::from)
-            .map_err(move |e| {
-                debug!("kv rpc failed";
-                    "request" => "coprocessor_stream",
-                    "err" => ?e
-                );
-                GRPC_MSG_FAIL_COUNTER.coprocessor_stream.inc();
             });
 
         ctx.spawn(future);
@@ -792,15 +730,6 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
         ctx.spawn(future);
     }
 
-    fn batch_coprocessor(
-        &mut self,
-        _ctx: RpcContext<'_>,
-        _req: BatchRequest,
-        _sink: ServerStreamingSink<BatchResponse>,
-    ) {
-        unimplemented!()
-    }
-
     fn batch_commands(
         &mut self,
         ctx: RpcContext<'_>,
@@ -813,9 +742,7 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
         let (tx, rx) = unbounded(GRPC_MSG_NOTIFY_SIZE);
 
         let ctx = Arc::new(ctx);
-        let peer = ctx.peer();
         let storage = self.storage.clone();
-        let cop = self.cop.clone();
         let gc_worker = self.gc_worker.clone();
         if self.enable_req_batch {
             let stopped = Arc::new(AtomicBool::new(false));
@@ -858,8 +785,6 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
                         handle_batch_commands_request(
                             &storage,
                             &gc_worker,
-                            &cop,
-                            &peer,
                             id,
                             req,
                             tx.clone(),
@@ -887,8 +812,6 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
                     handle_batch_commands_request(
                         &storage,
                         &gc_worker,
-                        &cop,
-                        &peer,
                         id,
                         req,
                         tx.clone(),
@@ -949,8 +872,6 @@ fn response_batch_commands_request<F>(
 fn handle_batch_commands_request<E: Engine, L: LockManager>(
     storage: &Storage<E, L>,
     gc_worker: &GcWorker<E>,
-    cop: &Endpoint<E>,
-    peer: &str,
     id: u64,
     req: batch_commands_request::Request,
     tx: Sender<(u64, batch_commands_response::Response)>,
@@ -1010,7 +931,6 @@ fn handle_batch_commands_request<E: Engine, L: LockManager>(
         RawScan, future_raw_scan(storage), raw_scan;
         RawDeleteRange, future_raw_delete_range(storage), raw_delete_range;
         RawBatchScan, future_raw_batch_scan(storage), raw_batch_scan;
-        Coprocessor, future_cop(cop, Some(peer.to_string())), coprocessor;
         PessimisticLock, future_acquire_pessimistic_lock(storage), kv_pessimistic_lock;
         PessimisticRollback, future_pessimistic_rollback(storage), kv_pessimistic_rollback;
         Empty, future_handle_empty(), invalid;
@@ -1466,15 +1386,6 @@ fn future_raw_delete_range<E: Engine, L: LockManager>(
         }
         resp
     })
-}
-
-fn future_cop<E: Engine>(
-    cop: &Endpoint<E>,
-    peer: Option<String>,
-    req: Request,
-) -> impl Future<Item = Response, Error = Error> {
-    cop.parse_and_handle_unary_request(req, peer)
-        .map_err(|_| unreachable!())
 }
 
 macro_rules! txn_command_future {

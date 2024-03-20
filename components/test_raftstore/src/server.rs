@@ -30,7 +30,6 @@ use raftstore::store::{
 use raftstore::Result;
 use security::SecurityManager;
 use tikv::config::{ConfigController, TiKvConfig};
-use tikv::coprocessor;
 use tikv::import::{ImportSSTService, SSTImporter};
 use tikv::read_pool::ReadPool;
 use tikv::server::gc_worker::GcWorker;
@@ -237,18 +236,12 @@ impl Simulator for ServerCluster {
             .encryption_key_manager(key_manager)
             .build(tmp_str, Some(router.clone()));
         let server_cfg = Arc::new(cfg.server.clone());
-        let cop_read_pool = ReadPool::from(coprocessor::readpool_impl::build_read_pool_for_test(
-            &tikv::config::CoprReadPoolConfig::default_for_test(),
-            store.get_engine(),
-        ));
-        let cop = coprocessor::Endpoint::new(&server_cfg, cop_read_pool.handle());
         let mut server = None;
         for _ in 0..100 {
             let mut svr = Server::new(
                 &server_cfg,
                 &security_mgr,
                 store.clone(),
-                cop.clone(),
                 sim_router.clone(),
                 resolver.clone(),
                 snap_mgr.clone(),

@@ -31,7 +31,7 @@ pub use self::region_info_accessor::{
 pub use self::split_check::{
     get_range_approximate_split_keys, get_region_approximate_keys, get_region_approximate_middle,
     get_region_approximate_size, HalfCheckObserver, Host as SplitCheckerHost, KeysCheckObserver,
-    SizeCheckObserver, TableCheckObserver,
+    SizeCheckObserver,
 };
 
 use crate::store::fsm::ObserveID;

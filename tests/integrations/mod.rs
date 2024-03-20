@@ -13,7 +13,6 @@ extern crate tikv_util;
 extern crate pd_client;
 
 mod config;
-mod coprocessor;
 mod import;
 mod pd;
 mod raftstore;
