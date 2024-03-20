@@ -5,6 +5,7 @@ edition = "2018"
 publish = false
 
 [features]
+failpoints = ["fail/failpoints"]
 protobuf-codec = [
   "engine/protobuf-codec",
   "engine_rocks/protobuf-codec",
@@ -32,6 +33,7 @@ prost-codec = [
 engine = { path = "../engine" }
 engine_traits = { path = "../engine_traits" }
 engine_rocks = { path = "../engine_rocks" }
+fail = "0.4"
 futures = "0.1"
 futures03 = { package = "futures", version = "0.3.1", features = ["compat"] }
 futures-cpupool = "0.1"

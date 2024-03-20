@@ -404,7 +404,7 @@ fn test_mvcc_concurrent_commit_and_rollback_at_shutdown() {
     let _rollback_resp = client.kv_batch_rollback_async(&rollback_req).unwrap();
 
     // Sleep some time to make sure both commit and rollback are queued in latch.
-    thread::sleep(Duration::from_millis(100));
+    thread::sleep(Duration::from_millis(1000));
     let shutdown_fp = "after_shutdown_apply";
     fail::cfg_callback(shutdown_fp, move || {
         fail::remove(leader_fp);

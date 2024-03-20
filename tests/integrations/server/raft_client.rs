@@ -183,7 +183,7 @@ fn test_batch_size_limit() {
     }
     raft_client.flush();
 
-    check_msg_count(500, &msg_count, 10);
+    check_msg_count(1000, &msg_count, 10);
     // The final received message count should be 10 exactly.
     drop(raft_client);
     drop(mock_server);

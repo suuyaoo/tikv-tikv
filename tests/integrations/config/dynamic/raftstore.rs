@@ -21,6 +21,7 @@ use tempfile::TempDir;
 use test_raftstore::TestPdClient;
 use tikv_util::config::VersionTrack;
 use tikv_util::worker::{FutureWorker, Worker};
+use tikv_util::thread_group::GroupProperties;
 
 #[derive(Clone)]
 struct MockTransport;
@@ -57,6 +58,10 @@ fn start_raftstore(
 ) {
     let (raft_router, mut system) = create_raft_batch_system(&cfg.raft_store);
     let engines = create_tmp_engine(dir);
+
+    let props = GroupProperties::default();
+    tikv_util::thread_group::set_properties(Some(props.clone()));
+
     let host = CoprocessorHost::default();
     let importer = {
         let p = dir

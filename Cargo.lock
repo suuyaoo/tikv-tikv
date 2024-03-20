@@ -3763,6 +3763,7 @@ dependencies = [
  "engine",
  "engine_rocks",
  "engine_traits",
+ "fail",
  "futures 0.1.29",
  "futures 0.3.8",
  "futures-cpupool",

@@ -105,7 +105,7 @@ impl Operator {
     fn make_region_heartbeat_response(
         &self,
         region_id: u64,
-        cluster: &Cluster,
+        cluster: &PdCluster,
     ) -> pdpb::RegionHeartbeatResponse {
         match *self {
             Operator::AddPeer { ref peer, .. } => {
@@ -157,7 +157,7 @@ impl Operator {
 
     fn try_finished(
         &mut self,
-        cluster: &Cluster,
+        cluster: &PdCluster,
         region: &metapb::Region,
         leader: &metapb::Peer,
     ) -> bool {
@@ -217,7 +217,7 @@ impl Operator {
     }
 }
 
-struct Cluster {
+struct PdCluster {
     meta: metapb::Cluster,
     stores: HashMap<u64, Store>,
     regions: BTreeMap<Key, metapb::Region>,
@@ -247,13 +247,13 @@ struct Cluster {
     pub check_merge_target_integrity: bool,
 }
 
-impl Cluster {
-    fn new(cluster_id: u64) -> Cluster {
+impl PdCluster {
+    fn new(cluster_id: u64) -> PdCluster {
         let mut meta = metapb::Cluster::default();
         meta.set_id(cluster_id);
         meta.set_max_peer_count(5);
 
-        Cluster {
+        PdCluster {
             meta,
             stores: HashMap::default(),
             regions: BTreeMap::new(),
@@ -576,6 +576,8 @@ impl Cluster {
             .insert(region.get_id(), region_stat.last_report_ts);
         self.region_last_report_term.insert(region.get_id(), term);
 
+        fail_point!("test_raftstore::pd::region_heartbeat");
+
         self.handle_heartbeat(region, leader)
     }
 
@@ -621,7 +623,7 @@ pub fn bootstrap_with_first_region(pd_client: Arc<TestPdClient>) -> Result<()> {
 
 pub struct TestPdClient {
     cluster_id: u64,
-    cluster: Arc<RwLock<Cluster>>,
+    cluster: Arc<RwLock<PdCluster>>,
     timer: Handle,
     is_incompatible: bool,
     tso: AtomicUsize,
@@ -632,7 +634,7 @@ impl TestPdClient {
     pub fn new(cluster_id: u64, is_incompatible: bool) -> TestPdClient {
         TestPdClient {
             cluster_id,
-            cluster: Arc::new(RwLock::new(Cluster::new(cluster_id))),
+            cluster: Arc::new(RwLock::new(PdCluster::new(cluster_id))),
             timer: GLOBAL_TIMER_HANDLE.clone(),
             is_incompatible,
             tso: AtomicUsize::new(1),

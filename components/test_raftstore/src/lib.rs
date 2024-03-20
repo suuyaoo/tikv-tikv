@@ -4,6 +4,9 @@
 extern crate tikv_util;
 extern crate pd_client;
 
+#[macro_use(fail_point)]
+extern crate fail;
+
 mod cluster;
 mod node;
 mod pd;
