@@ -105,7 +105,7 @@ nom = { version = "5.1.0", default-features = false, features = ["std"] }
 num_cpus = "1"
 pd_client = { path = "components/pd_client" }
 pin-project = "1.0"
-pnet_datalink = "0.23"
+pnet_datalink = "0.27"
 prost = "0.6"
 pprof = { git = "https://github.com/tikv/pprof-rs.git", branch = "tikv-release-4.0", features = ["flamegraph", "protobuf"] }
 protobuf = "2.8"
