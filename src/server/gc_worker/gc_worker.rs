@@ -15,7 +15,6 @@ use futures::Future;
 
 use kvproto::kvrpcpb::{Context, IsolationLevel, LockInfo};
 use kvproto::metapb;
-use tokio_core::reactor::Handle;
 
 use crate::server::metrics::*;
 use crate::storage::kv::{
@@ -543,7 +542,7 @@ impl<E: Engine> GcRunner<E> {
 
 impl<E: Engine> FutureRunnable<GcTask> for GcRunner<E> {
     #[inline]
-    fn run(&mut self, task: GcTask, _handle: &Handle) {
+    fn run(&mut self, task: GcTask) {
         let label = task.get_label();
         GC_GCTASK_COUNTER_VEC.with_label_values(&[label]).inc();
 

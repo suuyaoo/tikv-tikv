@@ -48,6 +48,7 @@ fail = "0.4"
 openssl = "0.10"
 fs2 = "0.4"
 futures = "0.1"
+futures03 = { package = "futures", version = "0.3" }
 futures-executor = "0.3.1"
 futures-util = { version = "0.3.1", default-features = false, features = ["io"] }
 into_other = { path = "../into_other" }
@@ -73,7 +74,6 @@ tempfile = "3.0"
 tikv_util = { path = "../tikv_util" }
 time = "0.1"
 tokio = { version = "0.2", features = ["sync"] }
-tokio-core = "0.1"
 tokio-timer = "0.2"
 txn_types = { path = "../txn_types"}
 uuid = { version = "0.8.1", features = ["serde", "v4"] }

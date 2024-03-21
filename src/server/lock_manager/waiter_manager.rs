@@ -22,10 +22,11 @@ use std::sync::{
 use std::time::{Duration, Instant};
 
 use futures::{Async, Future, Poll};
+use futures03::compat::Compat01As03;
+use tokio::task::spawn_local;
 use kvproto::deadlock::WaitForEntry;
 use prometheus::HistogramTimer;
 use tikv_util::config::ReadableDuration;
-use tokio_core::reactor::Handle;
 
 struct DelayInner {
     timer: tokio_timer::Delay,
@@ -481,7 +482,7 @@ impl WaiterManager {
             + timeout.into_duration_with_ceiling(self.default_wait_for_lock_timeout.as_millis())
     }
 
-    fn handle_wait_for(&mut self, handle: &Handle, waiter: Waiter) {
+    fn handle_wait_for(&mut self, waiter: Waiter) {
         let (waiter_ts, lock) = (waiter.start_ts, waiter.lock);
         let wait_table = self.wait_table.clone();
         let detector_scheduler = self.detector_scheduler.clone();
@@ -503,7 +504,7 @@ impl WaiterManager {
                 old.notify();
                 Some(())
             });
-        handle.spawn(f);
+        spawn_local(Compat01As03::new(f));
     }
 
     fn handle_wake_up(&mut self, lock_ts: TimeStamp, hashes: Vec<u64>, commit_ts: TimeStamp) {
@@ -573,7 +574,7 @@ impl WaiterManager {
 }
 
 impl FutureRunnable<Task> for WaiterManager {
-    fn run(&mut self, task: Task, handle: &Handle) {
+    fn run(&mut self, task: Task) {
         match task {
             Task::WaitFor {
                 start_ts,
@@ -583,7 +584,7 @@ impl FutureRunnable<Task> for WaiterManager {
                 timeout,
             } => {
                 let waiter = Waiter::new(start_ts, cb, pr, lock, self.normalize_deadline(timeout));
-                self.handle_wait_for(handle, waiter);
+                self.handle_wait_for(waiter);
                 TASK_COUNTER_METRICS.with(|m| {
                     m.wait_for.inc();
                     m.may_flush_all()
@@ -638,7 +639,7 @@ pub mod tests {
     use rand::prelude::*;
     use tikv_util::config::ReadableDuration;
     use tikv_util::time::InstantExt;
-    use tokio_core::reactor::Core;
+    use futures03::executor::block_on;
 
     fn dummy_waiter(start_ts: TimeStamp, lock_ts: TimeStamp, hash: u64) -> Waiter {
         Waiter {
@@ -665,12 +666,10 @@ pub mod tests {
     #[test]
     fn test_delay() {
         // tokio_timer can only run with tokio executor.
-        let mut core = Core::new().unwrap();
         let delay = Delay::new(Instant::now() + Duration::from_millis(100));
         assert_elapsed(
             || {
-                core.run(delay.map(|not_cancelled| assert!(not_cancelled)))
-                    .unwrap()
+                let _ = block_on(Compat01As03::new(delay.map(|not_cancelled| assert!(not_cancelled))));
             },
             50,
             200,
@@ -682,8 +681,7 @@ pub mod tests {
         delay_clone.reset(Instant::now() + Duration::from_millis(50));
         assert_elapsed(
             || {
-                core.run(delay.map(|not_cancelled| assert!(not_cancelled)))
-                    .unwrap()
+                let _ = block_on(Compat01As03::new(delay.map(|not_cancelled| assert!(not_cancelled))));
             },
             20,
             100,
@@ -695,8 +693,7 @@ pub mod tests {
         delay_clone.reset(Instant::now() + Duration::from_millis(300));
         assert_elapsed(
             || {
-                core.run(delay.map(|not_cancelled| assert!(not_cancelled)))
-                    .unwrap()
+                let _ = block_on(Compat01As03::new(delay.map(|not_cancelled| assert!(not_cancelled))));
             },
             50,
             200,
@@ -708,8 +705,7 @@ pub mod tests {
         delay_clone.cancel();
         assert_elapsed(
             || {
-                core.run(delay.map(|not_cancelled| assert!(!not_cancelled)))
-                    .unwrap()
+                let _ = block_on(Compat01As03::new(delay.map(|not_cancelled| assert!(!not_cancelled))));
             },
             0,
             200,
@@ -874,14 +870,12 @@ pub mod tests {
 
     #[test]
     fn test_waiter_on_timeout() {
-        let mut core = Core::new().unwrap();
-
         // The timeout handler should be invoked after timeout.
         let (waiter, _, _) = new_test_waiter(10.into(), 20.into(), 20);
         waiter.reset_timeout(Instant::now() + Duration::from_millis(100));
         let (tx, rx) = mpsc::sync_channel(1);
         let f = waiter.on_timeout(move || tx.send(1).unwrap());
-        assert_elapsed(|| core.run(f).unwrap(), 50, 200);
+        assert_elapsed(|| { let _ = block_on(Compat01As03::new(f)); }, 50, 200);
         rx.try_recv().unwrap();
 
         // The timeout handler shouldn't be invoked after waiter has been notified.
@@ -890,7 +884,7 @@ pub mod tests {
         let (tx, rx) = mpsc::sync_channel(1);
         let f = waiter.on_timeout(move || tx.send(1).unwrap());
         waiter.notify();
-        assert_elapsed(|| core.run(f).unwrap(), 0, 200);
+        assert_elapsed(|| { let _ = block_on(Compat01As03::new(f)); }, 0, 200);
         rx.try_recv().unwrap_err();
     }
 
@@ -1317,7 +1311,7 @@ pub mod tests {
             .add_waiter(dummy_waiter(10.into(), 20.into(), 10000));
         let hashes: Vec<u64> = (0..1000).collect();
         b.iter(|| {
-            test::black_box(|| waiter_mgr.handle_wake_up(20.into(), hashes.clone(), 30.into()));
+            waiter_mgr.handle_wake_up(20.into(), hashes.clone(), 30.into());
         });
     }
 }
