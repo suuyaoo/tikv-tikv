@@ -215,7 +215,7 @@ dependencies = [
  "futures-executor",
  "futures-util",
  "grpcio",
- "hex 0.4.2",
+ "hex",
  "keys",
  "kvproto",
  "lazy_static",
@@ -542,7 +542,7 @@ dependencies = [
  "futures 0.1.31",
  "futures-cpupool",
  "grpcio",
- "hex 0.4.2",
+ "hex",
  "keys",
  "kvproto",
  "libc",
@@ -981,7 +981,7 @@ version = "0.0.1"
 dependencies = [
  "configuration",
  "engine_traits",
- "hex 0.4.2",
+ "hex",
  "kvproto",
  "lazy_static",
  "log_wrappers",
@@ -1517,12 +1517,6 @@ dependencies = [
 
 [[package]]
 name = "hex"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "805026a5d0141ffc30abb3be3173848ad46a1b1664fe632428479619a3644d77"
-
-[[package]]
-name = "hex"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
@@ -1919,7 +1913,7 @@ dependencies = [
 name = "log_wrappers"
 version = "0.0.1"
 dependencies = [
- "hex 0.4.2",
+ "hex",
  "kvproto",
  "protobuf",
  "slog",
@@ -2588,7 +2582,7 @@ dependencies = [
  "bitflags",
  "byteorder",
  "chrono",
- "hex 0.4.2",
+ "hex",
  "lazy_static",
  "libc",
  "libflate",
@@ -2706,10 +2700,10 @@ dependencies = [
 [[package]]
 name = "protobuf"
 version = "2.8.0"
-source = "git+https://github.com/pingcap/rust-protobuf?rev=65e9df20fbcbcf2409d5ee86a2332ecd04c534f8#65e9df20fbcbcf2409d5ee86a2332ecd04c534f8"
+source = "git+https://github.com/suuyaoo/rust-protobuf?branch=v2.8#43fdf980ff9e7e87ca2ee5748225d5e0c38f8c74"
 dependencies = [
  "heck",
- "hex 0.3.2",
+ "hex",
 ]
 
 [[package]]
@@ -2731,7 +2725,7 @@ dependencies = [
 [[package]]
 name = "protobuf-codegen"
 version = "2.8.0"
-source = "git+https://github.com/pingcap/rust-protobuf?rev=65e9df20fbcbcf2409d5ee86a2332ecd04c534f8#65e9df20fbcbcf2409d5ee86a2332ecd04c534f8"
+source = "git+https://github.com/suuyaoo/rust-protobuf?branch=v2.8#43fdf980ff9e7e87ca2ee5748225d5e0c38f8c74"
 dependencies = [
  "heck",
  "protobuf",
@@ -3547,7 +3541,7 @@ dependencies = [
  "futures-executor",
  "futures-util",
  "grpcio",
- "hex 0.4.2",
+ "hex",
  "keys",
  "kvproto",
  "lazy_static",
@@ -3837,7 +3831,7 @@ dependencies = [
  "futures 0.3.30",
  "futures-cpupool",
  "grpcio",
- "hex 0.4.2",
+ "hex",
  "hyper",
  "keys",
  "kvproto",
@@ -3939,7 +3933,7 @@ dependencies = [
  "futures-executor",
  "futures-util",
  "grpcio",
- "hex 0.4.2",
+ "hex",
  "http",
  "hyper",
  "hyper-openssl",
