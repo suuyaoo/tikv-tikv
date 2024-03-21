@@ -71,4 +71,4 @@ toml = "0.4"
 
 [target.'cfg(unix)'.dev-dependencies]
 gag = "0.1.10"
-nix = "0.11"
+nix = "0.16"

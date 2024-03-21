@@ -69,7 +69,6 @@ kvproto = { git = "https://github.com/pingcap/kvproto.git", branch = "release-4.
 libc = "0.2"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
 log_wrappers = { path = "../components/log_wrappers" }
-nix = "0.11"
 pd_client = { path = "../components/pd_client" }
 prometheus = { version = "0.8", features = ["nightly", "push"] }
 protobuf = "2.8"
@@ -91,4 +90,4 @@ git = "https://github.com/tikv/yatp.git"
 branch = "tikv-4.0"
 
 [target.'cfg(unix)'.dependencies]
-signal = "0.6"
+signal-hook = "0.3"

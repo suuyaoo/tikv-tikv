@@ -73,12 +73,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc4662175ead9cd84451d5c35070517777949a2ed84551764129cedb88384841"
 
 [[package]]
-name = "arc-swap"
-version = "0.4.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dabe5a181f83789739c194cbe5a897dde195078fac08568d09221fd6137a7ba8"
-
-[[package]]
 name = "arrayvec"
 version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -525,7 +519,6 @@ dependencies = [
  "libc",
  "log",
  "log_wrappers",
- "nix 0.11.1",
  "pd_client",
  "prometheus",
  "protobuf",
@@ -534,7 +527,7 @@ dependencies = [
  "rand",
  "security",
  "serde_json",
- "signal",
+ "signal-hook",
  "slog",
  "slog-global",
  "tikv",
@@ -2072,19 +2065,6 @@ dependencies = [
 
 [[package]]
 name = "nix"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "becb657d662f1cd2ef38c7ad480ec6b8cf9e96b27adb543e594f9cf0f2e6065c"
-dependencies = [
- "bitflags",
- "cc",
- "cfg-if 0.1.10",
- "libc",
- "void",
-]
-
-[[package]]
-name = "nix"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd0eaf8df8bab402257e0a5c17a254e4cc1f72a93588a1ddfb5d356c801aa7cb"
@@ -2444,7 +2424,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "nix 0.16.1",
+ "nix",
  "prost",
  "prost-build",
  "prost-derive",
@@ -3159,22 +3139,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fdf1b9db47230893d76faad238fd6097fd6d6a9245cd7a4d90dbd639536bbd2"
 
 [[package]]
-name = "signal"
-version = "0.6.0"
+name = "signal-hook"
+version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "106428d9d96840ecdec5208c13ab8a4e28c38da1e0ccf2909fb44e41b992f897"
+checksum = "8621587d4798caf8eb44879d42e56b9a93ea5dcd315a6487c357130095b62801"
 dependencies = [
  "libc",
- "nix 0.11.1",
+ "signal-hook-registry",
 ]
 
 [[package]]
 name = "signal-hook-registry"
-version = "1.2.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94f478ede9f64724c5d173d7bb56099ec3e2d9fc2774aac65d34b8b890405f41"
+checksum = "d8229b473baa5980ac72ef434c4415e70c4b5e71b423043adb4ba059f89c99a1"
 dependencies = [
- "arc-swap 0.4.8",
  "libc",
 ]
 
@@ -3206,7 +3185,7 @@ name = "slog-global"
 version = "0.1.0"
 source = "git+https://github.com/breeswish/slog-global.git?rev=0e23a5baff302a9d7bccd85f8f31e43339c2f2c1#0e23a5baff302a9d7bccd85f8f31e43339c2f2c1"
 dependencies = [
- "arc-swap 0.3.11",
+ "arc-swap",
  "lazy_static",
  "log",
  "slog",
@@ -3842,7 +3821,7 @@ dependencies = [
  "libc",
  "log",
  "log_wrappers",
- "nix 0.11.1",
+ "nix",
  "num_cpus",
  "openssl",
  "panic_hook",
