@@ -97,7 +97,6 @@ tempfile = "3.0"
 tikv = { path = "../", default-features = false }
 tikv_util = { path = "../components/tikv_util" }
 error_code = { path = "../components/error_code" }
-tokio-threadpool = "0.1.13"
 toml = "0.4"
 txn_types = { path = "../components/txn_types" }
 uuid = { version = "0.8.1", features = ["serde", "v4"] }

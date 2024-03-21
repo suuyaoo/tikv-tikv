@@ -21,6 +21,8 @@ use crate::storage::{
 };
 use futures::future::Either;
 use futures::{future, Future, Sink, Stream};
+use futures03::compat::Stream01CompatExt;
+use futures03::stream::StreamExt;
 use grpcio::{
     ClientStreamingSink, DuplexSink, Error as GrpcError, RequestStream, RpcContext, RpcStatus,
     RpcStatusCode, UnarySink, WriteFlags,
@@ -39,7 +41,7 @@ use tikv_util::future::{paired_future_callback, poll_future_notify, AndThenWith}
 use tikv_util::mpsc::batch::{unbounded, BatchCollector, BatchReceiver, Sender};
 use tikv_util::timer::GLOBAL_TIMER_HANDLE;
 use tikv_util::worker::Scheduler;
-use tokio_threadpool::{Builder as ThreadPoolBuilder, ThreadPool};
+use tokio::runtime::{Builder as RuntimeBuilder, Runtime};
 use txn_types::{self, Key};
 
 const GRPC_MSG_MAX_BATCH_SIZE: usize = 128;
@@ -61,7 +63,7 @@ pub struct Service<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> {
 
     req_batch_wait_duration: Option<Duration>,
 
-    timer_pool: Arc<Mutex<ThreadPool>>,
+    timer_pool: Arc<Mutex<Runtime>>,
 
     grpc_thread_load: Arc<ThreadLoad>,
 
@@ -84,10 +86,12 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Service<T, E, L> {
         security_mgr: Arc<SecurityManager>,
     ) -> Self {
         let timer_pool = Arc::new(Mutex::new(
-            ThreadPoolBuilder::new()
-                .pool_size(1)
-                .name_prefix("req_batch_timer_guard")
-                .build(),
+            RuntimeBuilder::new()
+                    .threaded_scheduler()
+                    .thread_name("req_batch_timer_guard")
+                    .core_threads(1)
+                    .build()
+                    .unwrap(),
         ));
         Service {
             gc_worker,
@@ -759,22 +763,28 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
                 let stopped = Arc::clone(&stopped);
                 let start = Instant::now();
                 let timer = GLOBAL_TIMER_HANDLE.clone();
-                self.timer_pool.lock().unwrap().spawn(
-                    timer
-                        .interval(start, duration)
-                        .take_while(move |_| {
-                            // only stop timer when no more incoming and old batch is submitted.
-                            future::ok(
-                                !stopped.load(Ordering::Relaxed)
-                                    || !req_batcher2.lock().unwrap().is_empty(),
-                            )
-                        })
-                        .for_each(move |_| {
-                            req_batcher.lock().unwrap().should_submit(&storage);
-                            Ok(())
-                        })
-                        .map_err(|e| error!("batch_commands timer errored"; "err" => ?e)),
-                );
+                let mut delay = timer
+                    .interval(start, duration)
+                    .take_while(move |_| {
+                        // only stop timer when no more incoming and old batch is submitted.
+                        future::ok(
+                            !stopped.load(Ordering::Relaxed)
+                                || !req_batcher2.lock().unwrap().is_empty(),
+                        )
+                    })
+                    .compat();
+                 self.timer_pool.lock().unwrap().spawn(async move {
+                    while let Some(t) = delay.next().await {
+                        match t {
+                            Ok(_) => {
+                                req_batcher.lock().unwrap().should_submit(&storage);
+                            }
+                            Err(e) => {
+                                error!("batch_commands timer errored"; "err" => ?e);
+                            }
+                        }
+                    }
+                });
             }
             let request_handler = stream.for_each(move |mut req| {
                 let request_ids = req.take_request_ids();
