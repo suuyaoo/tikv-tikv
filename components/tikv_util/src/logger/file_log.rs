@@ -230,7 +230,8 @@ mod tests {
     use super::*;
 
     use std::ffi::OsStr;
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, SystemTime};
+    use std::fs::FileTimes;
     use tempfile::TempDir;
 
     fn file_exists(file: impl AsRef<Path>) -> bool {
@@ -261,17 +262,18 @@ mod tests {
         // Set the last modification time to 1 minute before.
         let last_modified = SystemTime::now()
             .checked_sub(Duration::from_secs(60))
-            .unwrap()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+            .unwrap();
 
         // Create a file.
         open_log_file(path.clone()).unwrap();
 
         // Modify last_modified time.
         let accessed = last_modified;
-        utime::set_file_times(path.clone(), accessed, last_modified).unwrap();
+        let times = FileTimes::new()
+            .set_accessed(accessed)
+            .set_modified(last_modified);
+        let dest = File::options().write(true).open(path.clone()).unwrap();
+        dest.set_times(times).unwrap();
 
         let mut logger = RotatingFileLoggerBuilder::new(path.clone(), move |path| {
             rename_with_subffix(path, suffix)
@@ -298,17 +300,18 @@ mod tests {
         // Set the last modification time to 1 minute later.
         let last_modified = SystemTime::now()
             .checked_add(Duration::from_secs(60))
-            .unwrap()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+            .unwrap();
 
         // Create a file.
         open_log_file(path.clone()).unwrap();
 
         // Modify last_modified time.
         let accessed = last_modified;
-        utime::set_file_times(path.clone(), accessed, last_modified).unwrap();
+        let times = FileTimes::new()
+            .set_accessed(accessed)
+            .set_modified(last_modified);
+        let dest = File::options().write(true).open(path.clone()).unwrap();
+        dest.set_times(times).unwrap();
 
         let mut logger = RotatingFileLoggerBuilder::new(path.clone(), move |path| {
             rename_with_subffix(path, suffix)
@@ -364,17 +367,18 @@ mod tests {
         // Set the last modification time to 1 minute before.
         let last_modified = SystemTime::now()
             .checked_sub(Duration::from_secs(120))
-            .unwrap()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+            .unwrap();
 
         // Create a file.
         open_log_file(path.clone()).unwrap();
 
         // Modify last_modified time.
         let accessed = last_modified;
-        utime::set_file_times(path.clone(), accessed, last_modified).unwrap();
+        let times = FileTimes::new()
+            .set_accessed(accessed)
+            .set_modified(last_modified);
+        let dest = File::options().write(true).open(path.clone()).unwrap();
+        dest.set_times(times).unwrap();
 
         let mut logger = RotatingFileLoggerBuilder::new(path.clone(), move |path| {
             rename_with_subffix(path, suffix)
@@ -406,17 +410,18 @@ mod tests {
         // Set the last modification time to 1 minute before.
         let last_modified = SystemTime::now()
             .checked_sub(Duration::from_secs(120))
-            .unwrap()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+            .unwrap();
 
         // Create a file.
         open_log_file(path.clone()).unwrap();
 
         // Modify last_modified time.
         let accessed = last_modified;
-        utime::set_file_times(path.clone(), accessed, last_modified).unwrap();
+        let times = FileTimes::new()
+            .set_accessed(accessed)
+            .set_modified(last_modified);
+        let dest = File::options().write(true).open(path.clone()).unwrap();
+        dest.set_times(times).unwrap();
 
         let mut logger = RotatingFileLoggerBuilder::new(path.clone(), move |path| {
             rename_with_subffix(path, suffix)
