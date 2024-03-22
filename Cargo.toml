@@ -12,7 +12,7 @@ edition = "2018"
 publish = false
 
 [features]
-default = ["test-engines-rocksdb", "cloud-aws", "cloud-gcp", "cloud-azure"]
+default = ["test-engines-rocksdb"]
 tcmalloc = ["tikv_alloc/tcmalloc"]
 jemalloc = ["tikv_alloc/jemalloc", "engine_rocks/jemalloc"]
 mimalloc = ["tikv_alloc/mimalloc"]
@@ -25,18 +25,6 @@ failpoints = [
   "raftstore/failpoints",
   "tikv_util/failpoints",
   "engine_rocks/failpoints"
-]
-cloud-aws = [
-  "encryption_export/cloud-aws",
-  "sst_importer/cloud-aws",
-]
-cloud-gcp = [
-  "encryption_export/cloud-gcp",
-  "sst_importer/cloud-gcp",
-]
-cloud-azure = [
-  "encryption_export/cloud-azure",
-  "sst_importer/cloud-azure",
 ]
 testexport = ["raftstore/testexport"]
 test-engines-rocksdb = [
@@ -239,10 +227,6 @@ members = [
   "components/external_storage",
   "components/external_storage/export",
   "components/case_macros",
-  "components/cloud",
-  "components/cloud/aws",
-  "components/cloud/azure",
-  "components/cloud/gcp",
   "components/backup",
   "components/keys",
   "components/sst_importer",

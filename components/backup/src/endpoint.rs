@@ -772,7 +772,6 @@ impl<E: Engine, R: RegionInfoProvider + Clone + 'static> Endpoint<E, R> {
 
     fn get_config(&self) -> BackendConfig {
         BackendConfig {
-            s3_multi_part_size: self.config_manager.0.read().unwrap().s3_multi_part_size.0 as usize,
             hdfs_config: HdfsConfig {
                 hadoop_home: self.config_manager.0.read().unwrap().hadoop.home.clone(),
                 linux_user: self
@@ -1058,7 +1057,7 @@ pub fn backup_file_name(
         // See https://github.com/pingcap/tidb/issues/30087
         // To avoid 503 Slow Down error, if the backup storage is s3,
         // organize the backup files by store_id (use slash (/) as delimiter).
-        (Some(k), aws::STORAGE_NAME | external_storage::local::STORAGE_NAME) => {
+        (Some(k), external_storage::local::STORAGE_NAME) => {
             format!(
                 "{}/{}_{}_{}_{}",
                 store_id,
@@ -1079,7 +1078,7 @@ pub fn backup_file_name(
             )
         }
 
-        (None, aws::STORAGE_NAME | external_storage::local::STORAGE_NAME) => {
+        (None, external_storage::local::STORAGE_NAME) => {
             format!(
                 "{}/{}_{}",
                 store_id,
@@ -1277,15 +1276,6 @@ pub mod tests {
 
         sleep(Duration::from_millis(250));
         assert_eq!(counter.load(Ordering::SeqCst), 0xffff);
-    }
-
-    #[test]
-    fn test_s3_config() {
-        let (_tmp, endpoint) = new_endpoint();
-        assert_eq!(
-            endpoint.config_manager.0.read().unwrap().s3_multi_part_size,
-            ReadableSize::mb(5)
-        );
     }
 
     #[test]
@@ -1718,12 +1708,9 @@ pub mod tests {
     fn test_backup_file_name() {
         let region = metapb::Region::default();
         let store_id = 1;
-        let test_cases = vec!["s3", "local", "gcs", "azure", "hdfs"];
+        let test_cases = vec!["local", "hdfs"];
         let test_target = vec![
             "1/0_0_000",
-            "1/0_0_000",
-            "1_0_0_000",
-            "1_0_0_000",
             "1_0_0_000",
         ];
 
@@ -1738,7 +1725,7 @@ pub mod tests {
             assert_eq!(target.to_string(), prefix_arr.join(delimiter));
         }
 
-        let test_target = vec!["1/0_0", "1/0_0", "1_0_0", "1_0_0", "1_0_0"];
+        let test_target = vec![ "1/0_0", "1_0_0"];
         for (storage_name, target) in test_cases.iter().zip(test_target.iter()) {
             let key = None;
             let filename = backup_file_name(store_id, &region, key, storage_name);
