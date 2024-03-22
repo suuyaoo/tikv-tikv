@@ -6,8 +6,6 @@ publish = false
 
 [features]
 default = []
-cloud-storage-grpc = ["external_storage_export/cloud-storage-grpc"]
-cloud-storage-dylib = ["external_storage_export/cloud-storage-dylib"]
 
 [dependencies]
 api_version = { path = "../api_version", default-features = false }

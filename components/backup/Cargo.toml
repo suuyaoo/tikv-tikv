@@ -6,8 +6,6 @@ publish = false
 
 [features]
 default = ["test-engines-rocksdb"]
-cloud-storage-grpc = ["external_storage_export/cloud-storage-grpc"]
-cloud-storage-dylib = ["external_storage_export/cloud-storage-dylib"]
 test-engines-rocksdb = [
   "tikv/test-engines-rocksdb",
 ]

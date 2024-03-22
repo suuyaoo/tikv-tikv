@@ -2,16 +2,14 @@
 
 use std::{
     fs::{File},
-    io::{Error, ErrorKind, Result},
+    io::{Result},
     path::Path,
 };
 
 use external_storage_export::{
-    create_storage, make_cloud_backend,
-    make_local_backend, make_noop_backend, ExternalStorage, UnpinReader,
+    create_storage, make_local_backend, make_noop_backend, ExternalStorage, UnpinReader,
 };
 use futures_util::io::{copy, AllowStdIo};
-use kvproto::brpb::{Bucket, CloudDynamic, StorageBackend};
 use structopt::clap::arg_enum;
 use structopt::StructOpt;
 use tikv_util::stream::block_on_external_io;
@@ -22,7 +20,6 @@ arg_enum! {
     enum StorageType {
         Noop,
         Local,
-        Cloud,
     }
 }
 
@@ -42,23 +39,6 @@ pub struct Opt {
     /// Path to use for local storage.
     #[structopt(short, long)]
     path: Option<String>,
-    /// Credential file path. For S3, use ~/.aws/credentials.
-    #[structopt(short, long)]
-    credential_file: Option<String>,
-    /// Remote endpoint
-    #[structopt(short, long)]
-    endpoint: Option<String>,
-    /// Remote region.
-    #[structopt(short, long)]
-    region: Option<String>,
-    /// Remote bucket name.
-    #[structopt(short, long)]
-    bucket: Option<String>,
-    /// Remote path prefix
-    #[structopt(short = "x", long)]
-    prefix: Option<String>,
-    #[structopt(long)]
-    cloud_name: Option<String>,
     #[structopt(subcommand)]
     command: Command,
 }
@@ -72,42 +52,12 @@ enum Command {
     Load,
 }
 
-fn create_cloud_storage(opt: &Opt) -> Result<StorageBackend> {
-    let mut bucket = Bucket::default();
-    if let Some(endpoint) = &opt.endpoint {
-        bucket.endpoint = endpoint.to_string();
-    }
-    if let Some(region) = &opt.region {
-        bucket.region = region.to_string();
-    }
-    if let Some(bucket_name) = &opt.bucket {
-        bucket.bucket = bucket_name.to_string();
-    } else {
-        return Err(Error::new(ErrorKind::Other, "missing bucket"));
-    }
-    if let Some(prefix) = &opt.prefix {
-        bucket.prefix = prefix.to_string();
-    }
-    let mut config = CloudDynamic::default();
-    config.set_bucket(bucket);
-    let mut attrs = std::collections::HashMap::new();
-    if let Some(credential_file) = &opt.credential_file {
-        attrs.insert("credential_file".to_owned(), credential_file.clone());
-    }
-    config.set_attrs(attrs);
-    if let Some(cloud_name) = &opt.cloud_name {
-        config.provider_name = cloud_name.clone();
-    }
-    Ok(make_cloud_backend(config))
-}
-
 fn process() -> Result<()> {
     let opt = Opt::from_args();
     let storage: Box<dyn ExternalStorage> = create_storage(
         &(match opt.storage {
             StorageType::Noop => make_noop_backend(),
             StorageType::Local => make_local_backend(Path::new(&opt.path.unwrap())),
-            StorageType::Cloud => create_cloud_storage(&opt)?,
         }),
         Default::default(),
     )?;

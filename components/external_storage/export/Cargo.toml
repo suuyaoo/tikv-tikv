@@ -4,11 +4,6 @@ version = "0.0.1"
 edition = "2018"
 publish = false
 
-[[bin]]
-name = "tikv-cloud-storage"
-path = "src/bin/tikv-cloud-storage.rs"
-required-features = ["cloud-storage-grpc"]
-
 [lib]
 name = "external_storage_export"
 # Experimental feature to load the cloud storage code dynamically
@@ -16,35 +11,6 @@ name = "external_storage_export"
 
 [features]
 default = []
-cloud-storage-dylib = [
-  "external_storage/cloud-storage-dylib",
-  "ffi-support",
-  "file_system",
-  "futures",
-  "libloading",
-  "lazy_static",
-  "once_cell",
-  "protobuf",
-  "slog",
-  "slog-global",
-  "tokio",
-  "tokio-util",
-]
-cloud-storage-grpc = [
-  "external_storage/cloud-storage-grpc",
-  "grpcio",
-  "file_system",
-  "futures",
-  "futures-executor",
-  "libc",
-  "signal",
-  "slog",
-  "slog-global",
-  "slog-term",
-  "tokio",
-  "tokio-util",
-  "nix",
-]
 
 [dependencies]
 lazy_static = { optional = true, version = "1.3" }

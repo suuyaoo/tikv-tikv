@@ -16,8 +16,6 @@ sse = ["tikv/sse"]
 mem-profiling = ["tikv/mem-profiling"]
 failpoints = ["tikv/failpoints"]
 bcc-iosnoop = ["tikv/bcc-iosnoop"]
-cloud-storage-grpc = [ "backup/cloud-storage-grpc" ]
-cloud-storage-dylib = [ "backup/cloud-storage-dylib" ]
 test-engines-rocksdb = [
   "tikv/test-engines-rocksdb",
 ]

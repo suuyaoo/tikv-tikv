@@ -4,12 +4,6 @@
 version = 3
 
 [[package]]
-name = "RustyXML"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b5ace29ee3216de37c0546865ad08edef58b0f9e76838ed8959a84a990e58c5"
-
-[[package]]
 name = "addr2line"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -179,18 +173,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-timer"
-version = "1.0.0-beta.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d962799a5863fdf06fbf594e04102130582d010379137e9a98a7e2e693a5885"
-dependencies = [
- "error-code",
- "libc 0.2.106",
- "wasm-bindgen",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "async-trait"
 version = "0.1.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -227,131 +209,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8aac770f1885fd7e387acedd76065302551364496e46b3dd00860b2f8359b9d"
 
 [[package]]
-name = "aws"
-version = "0.0.1"
-dependencies = [
- "async-trait",
- "bytes 1.0.1",
- "cloud",
- "fail",
- "futures 0.3.15",
- "futures-util",
- "grpcio",
- "http",
- "hyper",
- "hyper-tls",
- "kvproto",
- "lazy_static",
- "prometheus",
- "rusoto_core",
- "rusoto_credential",
- "rusoto_kms",
- "rusoto_mock",
- "rusoto_s3",
- "rusoto_sts",
- "slog",
- "slog-global",
- "thiserror",
- "tikv_util",
- "tokio",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "azure"
-version = "0.0.1"
-dependencies = [
- "async-trait",
- "azure_core",
- "azure_identity",
- "azure_storage",
- "base64",
- "chrono",
- "cloud",
- "futures 0.3.15",
- "futures-util",
- "kvproto",
- "oauth2",
- "slog",
- "slog-global",
- "tikv_util",
- "tokio",
- "url",
-]
-
-[[package]]
-name = "azure_core"
-version = "0.1.0"
-source = "git+https://github.com/Azure/azure-sdk-for-rust#b3c53f4cec4a6b541e49388b51e696dc892f18a3"
-dependencies = [
- "async-trait",
- "base64",
- "bytes 1.0.1",
- "chrono",
- "dyn-clone",
- "futures 0.3.15",
- "getrandom 0.2.3",
- "http",
- "log",
- "oauth2",
- "rand 0.8.3",
- "reqwest",
- "rustc_version 0.4.0",
- "serde",
- "serde_derive",
- "serde_json",
- "thiserror",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "azure_identity"
-version = "0.1.0"
-source = "git+https://github.com/Azure/azure-sdk-for-rust#b3c53f4cec4a6b541e49388b51e696dc892f18a3"
-dependencies = [
- "async-timer",
- "async-trait",
- "azure_core",
- "chrono",
- "futures 0.3.15",
- "log",
- "oauth2",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror",
- "url",
-]
-
-[[package]]
-name = "azure_storage"
-version = "0.1.0"
-source = "git+https://github.com/Azure/azure-sdk-for-rust#b3c53f4cec4a6b541e49388b51e696dc892f18a3"
-dependencies = [
- "RustyXML",
- "async-trait",
- "azure_core",
- "base64",
- "bytes 1.0.1",
- "chrono",
- "futures 0.3.15",
- "http",
- "log",
- "md5",
- "once_cell",
- "ring",
- "serde",
- "serde-xml-rs",
- "serde_derive",
- "serde_json",
- "thiserror",
- "url",
- "uuid",
-]
-
-[[package]]
 name = "backtrace"
 version = "0.3.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -371,7 +228,6 @@ name = "backup"
 version = "0.0.1"
 dependencies = [
  "async-channel",
- "aws",
  "collections",
  "concurrency_manager",
  "crc64fast",
@@ -560,9 +416,6 @@ name = "bytes"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b700ce4376041dcd0a327fd0097c41095743c4c8af8887265942faf1100bd040"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "bzip2-sys"
@@ -743,26 +596,6 @@ dependencies = [
  "textwrap",
  "unicode-width",
  "vec_map",
-]
-
-[[package]]
-name = "cloud"
-version = "0.0.1"
-dependencies = [
- "async-trait",
- "derive_more",
- "error_code",
- "fail",
- "futures-io",
- "kvproto",
- "lazy_static",
- "openssl",
- "prometheus",
- "protobuf",
- "rusoto_core",
- "thiserror",
- "tikv_util",
- "url",
 ]
 
 [[package]]
@@ -1192,12 +1025,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "923dea538cea0aa3025e8685b20d6ee21ef99c4f77e954a30febbaac5ec73a97"
 
 [[package]]
-name = "dyn-clone"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee2626afccd7561a06cf1367e2950c4718ea04565e20fb5029b6c7d8ad09abcf"
-
-[[package]]
 name = "either"
 version = "1.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1263,8 +1090,6 @@ name = "encryption_export"
 version = "0.0.1"
 dependencies = [
  "async-trait",
- "aws",
- "cloud",
  "derive_more",
  "encryption",
  "error_code",
@@ -1383,16 +1208,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "error-code"
-version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5115567ac25674e0043e472be13d14e537f37ea8aa4bdc4aef0c89add1db1ff"
-dependencies = [
- "libc 0.2.106",
- "str-buf",
-]
-
-[[package]]
 name = "error_code"
 version = "0.0.1"
 dependencies = [
@@ -1458,9 +1273,6 @@ name = "external_storage_export"
 version = "0.0.1"
 dependencies = [
  "async-trait",
- "aws",
- "azure",
- "cloud",
  "encryption",
  "engine_traits",
  "external_storage",
@@ -1470,7 +1282,6 @@ dependencies = [
  "futures-executor",
  "futures-io",
  "futures-util",
- "gcp",
  "grpcio",
  "kvproto",
  "lazy_static",
@@ -1861,27 +1672,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gcp"
-version = "0.0.1"
-dependencies = [
- "async-trait",
- "cloud",
- "futures-util",
- "http",
- "hyper",
- "hyper-tls",
- "kvproto",
- "matches",
- "slog",
- "slog-global",
- "tame-gcs",
- "tame-oauth",
- "tikv_util",
- "tokio",
- "url",
-]
-
-[[package]]
 name = "generic-array"
 version = "0.14.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1909,10 +1699,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fcd999463524c52659517fe2cea98493cfe485d10565e7b0fb07dbba7ad2753"
 dependencies = [
  "cfg-if 1.0.0",
- "js-sys",
  "libc 0.2.106",
  "wasi 0.10.2+wasi-snapshot-preview1",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -2554,12 +2342,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "md5"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "490cc448043f947bae3cbee9c203358d62dbee0db12107a74be5c30ccfd09771"
-
-[[package]]
 name = "memchr"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2955,26 +2737,6 @@ checksum = "05499f3756671c15885fee9034446956fff3f243d6077b91e5767df161f766b3"
 dependencies = [
  "hermit-abi",
  "libc 0.2.106",
-]
-
-[[package]]
-name = "oauth2"
-version = "4.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80e47cfc4c0a1a519d9a025ebfbac3a2439d1b5cdf397d72dcb79b11d9920dab"
-dependencies = [
- "base64",
- "chrono",
- "getrandom 0.2.3",
- "http",
- "rand 0.8.3",
- "reqwest",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "sha2",
- "thiserror",
- "url",
 ]
 
 [[package]]
@@ -4009,7 +3771,6 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "serde",
- "serde_json",
  "serde_urlencoded",
  "tokio",
  "tokio-native-tls",
@@ -4096,21 +3857,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2089e4031214d129e201f8c3c8c2fe97cd7322478a0d1cdf78e7029b0042efdb"
 
 [[package]]
-name = "ring"
-version = "0.16.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b72b84d47e8ec5a4f2872e8262b8f8256c5be1c938a7d6d3a867a3ba8f722f74"
-dependencies = [
- "cc",
- "libc 0.2.106",
- "once_cell",
- "spin",
- "untrusted",
- "web-sys",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "rocksdb"
 version = "0.3.0"
 source = "git+https://github.com/tikv/rust-rocksdb.git?branch=tikv-5.4#7641ef513d6b06c18f8354f13e08ee552ff6ae5d"
@@ -4161,47 +3907,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rusoto_kms"
-version = "0.46.0"
-source = "git+https://github.com/tikv/rusoto?branch=gh1482-s3-addr-styles#5fcf2d1c36b93d0146cc49f257dd850e01b6e4db"
-dependencies = [
- "async-trait",
- "bytes 1.0.1",
- "futures 0.3.15",
- "rusoto_core",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "rusoto_mock"
-version = "0.46.0"
-source = "git+https://github.com/tikv/rusoto?branch=gh1482-s3-addr-styles#5fcf2d1c36b93d0146cc49f257dd850e01b6e4db"
-dependencies = [
- "async-trait",
- "chrono",
- "futures 0.3.15",
- "http",
- "rusoto_core",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "rusoto_s3"
-version = "0.46.0"
-source = "git+https://github.com/tikv/rusoto?branch=gh1482-s3-addr-styles#5fcf2d1c36b93d0146cc49f257dd850e01b6e4db"
-dependencies = [
- "async-trait",
- "bytes 1.0.1",
- "futures 0.3.15",
- "rusoto_core",
- "serde",
- "serde_derive",
- "xml-rs",
-]
-
-[[package]]
 name = "rusoto_signature"
 version = "0.46.0"
 source = "git+https://github.com/tikv/rusoto?branch=gh1482-s3-addr-styles#5fcf2d1c36b93d0146cc49f257dd850e01b6e4db"
@@ -4224,20 +3929,6 @@ dependencies = [
  "serde",
  "sha2",
  "tokio",
-]
-
-[[package]]
-name = "rusoto_sts"
-version = "0.46.0"
-source = "git+https://github.com/tikv/rusoto?branch=gh1482-s3-addr-styles#5fcf2d1c36b93d0146cc49f257dd850e01b6e4db"
-dependencies = [
- "async-trait",
- "bytes 1.0.1",
- "chrono",
- "futures 0.3.15",
- "rusoto_core",
- "serde_urlencoded",
- "xml-rs",
 ]
 
 [[package]]
@@ -4280,15 +3971,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0dfe2087c51c460008730de8b57e6a320782fbfb312e1f4d520e6c6fae155ee"
 dependencies = [
  "semver 0.11.0",
-]
-
-[[package]]
-name = "rustc_version"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
-dependencies = [
- "semver 1.0.4",
 ]
 
 [[package]]
@@ -4455,18 +4137,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde-xml-rs"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0bf1ba0696ccf0872866277143ff1fd14d22eec235d2b23702f95e6660f7dfa"
-dependencies = [
- "log",
- "serde",
- "thiserror",
- "xml-rs",
-]
-
-[[package]]
 name = "serde_cbor"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4504,15 +4174,6 @@ checksum = "799e97dc9fdae36a5c8b8f2cae9ce2ee9fdce2058c57a93e6099d919fd982f79"
 dependencies = [
  "itoa",
  "ryu",
- "serde",
-]
-
-[[package]]
-name = "serde_path_to_error"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0421d4f173fab82d72d6babf36d57fae38b994ca5c2d78e704260ba6d12118b"
-dependencies = [
  "serde",
 ]
 
@@ -4761,12 +4422,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spin"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
-
-[[package]]
 name = "sst_importer"
 version = "0.1.0"
 dependencies = [
@@ -4812,12 +4467,6 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
-
-[[package]]
-name = "str-buf"
-version = "1.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d44a3643b4ff9caf57abcee9c2c621d6c03d9135e0d8b589bd9afb5992cb176a"
 
 [[package]]
 name = "str_stack"
@@ -4942,44 +4591,6 @@ name = "take_mut"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f764005d11ee5f36500a149ace24e00e3da98b0158b3e2d53a7495660d3f4d60"
-
-[[package]]
-name = "tame-gcs"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d20ec2d6525a66afebdff9e1d8ef143c9deae9a3b040c61d3cfa9ae6fda80060"
-dependencies = [
- "base64",
- "bytes 1.0.1",
- "chrono",
- "futures-util",
- "http",
- "percent-encoding",
- "pin-utils",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "thiserror",
- "url",
-]
-
-[[package]]
-name = "tame-oauth"
-version = "0.4.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9435c9348e480fad0f2215d5602e2dfad03df8a6398c4e7ceaeaa42758f26a8a"
-dependencies = [
- "base64",
- "chrono",
- "http",
- "lock_api",
- "parking_lot",
- "ring",
- "serde",
- "serde_json",
- "twox-hash",
- "url",
-]
 
 [[package]]
 name = "tcmalloc"
@@ -5968,12 +5579,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "twox-hash"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3bfd5b7557925ce778ff9b9ef90e3ade34c524b5ff10e239c69a42d546d2af56"
-
-[[package]]
 name = "txn_types"
 version = "0.1.0"
 dependencies = [
@@ -6048,12 +5653,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c"
 
 [[package]]
-name = "untrusted"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a156c684c91ea7d62626509bce3cb4e1d9ed5c4d978f7b4352658f96a4c26b4a"
-
-[[package]]
 name = "url"
 version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6063,7 +5662,6 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
- "serde",
 ]
 
 [[package]]
@@ -6380,3 +5978,23 @@ dependencies = [
  "itertools 0.9.0",
  "libc 0.2.106",
 ]
+
+[[patch.unused]]
+name = "rusoto_kms"
+version = "0.46.0"
+source = "git+https://github.com/tikv/rusoto?branch=gh1482-s3-addr-styles#5fcf2d1c36b93d0146cc49f257dd850e01b6e4db"
+
+[[patch.unused]]
+name = "rusoto_mock"
+version = "0.46.0"
+source = "git+https://github.com/tikv/rusoto?branch=gh1482-s3-addr-styles#5fcf2d1c36b93d0146cc49f257dd850e01b6e4db"
+
+[[patch.unused]]
+name = "rusoto_s3"
+version = "0.46.0"
+source = "git+https://github.com/tikv/rusoto?branch=gh1482-s3-addr-styles#5fcf2d1c36b93d0146cc49f257dd850e01b6e4db"
+
+[[patch.unused]]
+name = "rusoto_sts"
+version = "0.46.0"
+source = "git+https://github.com/tikv/rusoto?branch=gh1482-s3-addr-styles#5fcf2d1c36b93d0146cc49f257dd850e01b6e4db"

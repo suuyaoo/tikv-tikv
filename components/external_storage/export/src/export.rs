@@ -9,19 +9,10 @@ use std::sync::Arc;
 
 use engine_traits::FileEncryptionInfo;
 
-use kvproto::brpb::CloudDynamic;
 pub use kvproto::brpb::StorageBackend_oneof_backend as Backend;
 
-#[cfg(feature = "cloud-storage-dylib")]
-use crate::dylib;
 use async_trait::async_trait;
-#[cfg(any(feature = "cloud-storage-dylib", feature = "cloud-storage-grpc"))]
-use cloud::blob::BlobConfig;
 use encryption::DataKeyManager;
-#[cfg(feature = "cloud-storage-dylib")]
-use external_storage::dylib_client;
-#[cfg(feature = "cloud-storage-grpc")]
-use external_storage::grpc_client;
 use external_storage::{encrypt_wrap_reader, record_storage_create, BackendConfig};
 pub use external_storage::{
     read_external_storage_into_file, ExternalStorage, LocalStorage, NoopStorage, UnpinReader,
@@ -30,8 +21,6 @@ use futures_io::AsyncRead;
 use kvproto::brpb::{Noop, StorageBackend};
 use tikv_util::stream::block_on_external_io;
 use tikv_util::time::{Instant, Limiter};
-#[cfg(feature = "cloud-storage-dylib")]
-use tikv_util::warn;
 
 pub fn create_storage(
     storage_backend: &StorageBackend,
@@ -39,19 +28,6 @@ pub fn create_storage(
 ) -> io::Result<Box<dyn ExternalStorage>> {
     if let Some(backend) = &storage_backend.backend {
         create_backend(backend, config)
-    } else {
-        Err(bad_storage_backend(storage_backend))
-    }
-}
-
-// when the flag cloud-storage-dylib or cloud-storage-grpc is set create_storage is automatically wrapped with a client
-// This function is used by the library/server to avoid any wrapping
-pub fn create_storage_no_client(
-    storage_backend: &StorageBackend,
-    config: BackendConfig,
-) -> io::Result<Box<dyn ExternalStorage>> {
-    if let Some(backend) = &storage_backend.backend {
-        create_backend_inner(backend, config)
     } else {
         Err(bad_storage_backend(storage_backend))
     }
@@ -72,54 +48,11 @@ fn bad_backend(backend: Backend) -> io::Error {
     bad_storage_backend(&storage_backend)
 }
 
-#[cfg(feature = "cloud-storage-grpc")]
-pub fn create_backend(backend: &Backend) -> io::Result<Box<dyn ExternalStorage>> {
-    match create_config(backend) {
-        Some(config) => {
-            let conf = config?;
-            grpc_client::new_client(backend.clone(), conf.name(), conf.url()?)
-        }
-        None => Err(bad_backend(backend.clone())),
-    }
-}
-
-#[cfg(feature = "cloud-storage-dylib")]
-pub fn create_backend(backend: &Backend) -> io::Result<Box<dyn ExternalStorage>> {
-    match create_config(backend) {
-        Some(config) => {
-            let conf = config?;
-            let r = dylib_client::new_client(backend.clone(), conf.name(), conf.url()?);
-            match r {
-                Err(e) if e.kind() == io::ErrorKind::AddrNotAvailable => {
-                    warn!("could not open dll for external_storage_export");
-                    dylib::staticlib::new_client(backend.clone(), conf.name(), conf.url()?)
-                }
-                _ => r,
-            }
-        }
-        None => Err(bad_backend(backend.clone())),
-    }
-}
-
-#[cfg(all(
-    not(feature = "cloud-storage-grpc"),
-    not(feature = "cloud-storage-dylib")
-))]
 pub fn create_backend(
     backend: &Backend,
     config: BackendConfig,
 ) -> io::Result<Box<dyn ExternalStorage>> {
     create_backend_inner(backend, config)
-}
-
-#[cfg(any(feature = "cloud-storage-dylib", feature = "cloud-storage-grpc"))]
-fn create_config(backend: &Backend) -> Option<io::Result<Box<dyn BlobConfig>>> {
-    match backend {
-        Backend::CloudDynamic(dyn_backend) => match dyn_backend.provider_name.as_str() {
-            _ => None,
-        },
-        _ => None,
-    }
 }
 
 /// Create a new storage from the given storage backend description.
@@ -134,11 +67,6 @@ fn create_backend_inner(
             Box::new(LocalStorage::new(p)?) as Box<dyn ExternalStorage>
         }
         Backend::Noop(_) => Box::new(NoopStorage::default()) as Box<dyn ExternalStorage>,
-        Backend::CloudDynamic(dyn_backend) => match dyn_backend.provider_name.as_str() {
-            _ => {
-                return Err(bad_backend(Backend::CloudDynamic(dyn_backend.clone())));
-            }
-        },
         #[allow(unreachable_patterns)]
         _ => return Err(bad_backend(backend.clone())),
     };
@@ -158,12 +86,6 @@ pub fn make_noop_backend() -> StorageBackend {
     let noop = Noop::default();
     let mut backend = StorageBackend::default();
     backend.set_noop(noop);
-    backend
-}
-
-pub fn make_cloud_backend(config: CloudDynamic) -> StorageBackend {
-    let mut backend = StorageBackend::default();
-    backend.set_cloud_dynamic(config);
     backend
 }
 
