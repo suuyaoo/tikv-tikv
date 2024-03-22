@@ -228,7 +228,7 @@ where
                 let response = Response::builder()
                     .header("X-Content-Type-Options", "nosniff")
                     .header("Content-Disposition", "attachment; filename=\"profile\"")
-                    .header("Content-Type", mime::APPLICATION_OCTET_STREAM.to_string())
+                    .header("Content-Type", "application/octet-stream")
                     .header("Content-Length", buf.len())
                     .body(buf.into())
                     .unwrap();

@@ -3564,7 +3564,6 @@ dependencies = [
  "log_wrappers",
  "match_template",
  "matches",
- "mime",
  "more-asserts",
  "murmur3",
  "nom 5.1.0",
