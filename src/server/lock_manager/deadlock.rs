@@ -9,6 +9,7 @@ use crate::server::resolve::StoreAddrResolver;
 use crate::storage::lock_manager::Lock;
 use futures::{Future, Sink, Stream};
 use futures03::compat::{Future01CompatExt};
+use futures03::TryFutureExt;
 use grpcio::{
     self, DuplexSink, Environment, RequestStream, RpcContext, RpcStatus, RpcStatusCode, UnarySink,
     WriteFlags,
@@ -916,7 +917,7 @@ impl Deadlock for Service {
             ctx.spawn(sink.fail(status).map_err(|_| ()))
         } else {
             ctx.spawn(
-                f.map_err(Error::from)
+                f.compat().map_err(Error::from)
                     .map(|v| {
                         let mut resp = WaitForEntriesResponse::default();
                         resp.set_entries(v.into());
@@ -1164,7 +1165,7 @@ pub mod tests {
         let check_role = |role| {
             let (tx, f) = paired_future_callback();
             scheduler.get_role(tx);
-            assert_eq!(f.wait().unwrap(), role);
+            assert_eq!(f.compat().wait().unwrap(), role);
         };
 
         // Region changed

@@ -7,7 +7,7 @@ use futures::{Async, Future, IntoFuture, Poll};
 use futures03::future::{self as std_future, Future as StdFuture, FutureExt, TryFutureExt};
 use futures03::stream::{Stream, StreamExt};
 use std::sync::{Arc, Mutex};
-use tokio_sync::oneshot;
+use tokio::sync::oneshot;
 
 /// Generates a paired future and callback so that when callback is being called, its result
 /// is automatically passed as a future result.

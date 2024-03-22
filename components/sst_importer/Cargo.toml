@@ -45,7 +45,6 @@ slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global
 tikv_alloc = { path = "../tikv_alloc" }
 tikv_util = { path = "../tikv_util" }
 tokio = { version = "0.2.13", features = ["time"] }
-tokio-sync = "0.1.7"
 txn_types = { path = "../txn_types" }
 uuid = { version = "0.8.1", features = ["serde", "v4"] }
 

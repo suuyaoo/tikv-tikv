@@ -639,6 +639,7 @@ pub mod tests {
     use rand::prelude::*;
     use tikv_util::config::ReadableDuration;
     use tikv_util::time::InstantExt;
+    use futures03::TryFutureExt;
     use futures03::executor::block_on;
 
     fn dummy_waiter(start_ts: TimeStamp, lock_ts: TimeStamp, hash: u64) -> Waiter {
@@ -716,7 +717,7 @@ pub mod tests {
     pub(crate) type WaiterCtx = (
         Waiter,
         LockInfo,
-        tokio_sync::oneshot::Receiver<
+        tokio::sync::oneshot::Receiver<
             Result<Result<PessimisticLockRes, StorageError>, StorageError>,
         >,
     );
@@ -836,7 +837,7 @@ pub mod tests {
     fn test_waiter_notify() {
         let (waiter, lock_info, f) = new_test_waiter(10.into(), 20.into(), 20);
         waiter.notify();
-        expect_key_is_locked(f.wait().unwrap().unwrap(), lock_info);
+        expect_key_is_locked(f.compat().wait().unwrap().unwrap(), lock_info);
 
         // A waiter can conflict with other transactions more than once.
         for conflict_times in 1..=3 {
@@ -849,7 +850,7 @@ pub mod tests {
                 lock_info.set_lock_version(lock_ts.into_inner());
             }
             waiter.notify();
-            expect_write_conflict(f.wait().unwrap(), waiter_ts, lock_info, conflict_commit_ts);
+            expect_write_conflict(f.compat().wait().unwrap(), waiter_ts, lock_info, conflict_commit_ts);
         }
 
         // Deadlock
@@ -857,7 +858,7 @@ pub mod tests {
         let (mut waiter, lock_info, f) = new_test_waiter(waiter_ts, 20.into(), 20);
         waiter.deadlock_with(111);
         waiter.notify();
-        expect_deadlock(f.wait().unwrap(), waiter_ts, lock_info, 111);
+        expect_deadlock(f.compat().wait().unwrap(), waiter_ts, lock_info, 111);
 
         // Conflict then deadlock.
         let waiter_ts = TimeStamp::new(10);
@@ -865,7 +866,7 @@ pub mod tests {
         waiter.conflict_with(20.into(), 30.into());
         waiter.deadlock_with(111);
         waiter.notify();
-        expect_deadlock(f.wait().unwrap(), waiter_ts, lock_info, 111);
+        expect_deadlock(f.compat().wait().unwrap(), waiter_ts, lock_info, 111);
     }
 
     #[test]
@@ -1066,7 +1067,7 @@ pub mod tests {
             WaitTimeout::Millis(1000),
         );
         assert_elapsed(
-            || expect_key_is_locked(f.wait().unwrap().unwrap(), lock_info),
+            || expect_key_is_locked(f.compat().wait().unwrap().unwrap(), lock_info),
             900,
             1200,
         );
@@ -1081,7 +1082,7 @@ pub mod tests {
             WaitTimeout::Millis(100),
         );
         assert_elapsed(
-            || expect_key_is_locked(f.wait().unwrap().unwrap(), lock_info),
+            || expect_key_is_locked(f.compat().wait().unwrap().unwrap(), lock_info),
             50,
             300,
         );
@@ -1096,7 +1097,7 @@ pub mod tests {
             WaitTimeout::Millis(3000),
         );
         assert_elapsed(
-            || expect_key_is_locked(f.wait().unwrap().unwrap(), lock_info),
+            || expect_key_is_locked(f.compat().wait().unwrap().unwrap(), lock_info),
             900,
             1200,
         );
@@ -1130,7 +1131,7 @@ pub mod tests {
         scheduler.wake_up(lock_ts, lock_hashes, commit_ts);
         for (waiter_ts, lock_info, f) in waiters_info {
             assert_elapsed(
-                || expect_write_conflict(f.wait().unwrap(), waiter_ts, lock_info, commit_ts),
+                || expect_write_conflict(f.compat().wait().unwrap(), waiter_ts, lock_info, commit_ts),
                 0,
                 200,
             );
@@ -1163,7 +1164,7 @@ pub mod tests {
             scheduler.wake_up(lock.ts, vec![lock.hash], commit_ts);
             lock_info.set_lock_version(lock.ts.into_inner());
             assert_elapsed(
-                || expect_write_conflict(f.wait().unwrap(), waiter_ts, lock_info, commit_ts),
+                || expect_write_conflict(f.compat().wait().unwrap(), waiter_ts, lock_info, commit_ts),
                 0,
                 200,
             );
@@ -1177,7 +1178,7 @@ pub mod tests {
         // It conflicts with the last transaction.
         lock_info.set_lock_version(lock.ts.into_inner() - 1);
         assert_elapsed(
-            || expect_write_conflict(f.wait().unwrap(), waiter_ts, lock_info, *commit_ts.decr()),
+            || expect_write_conflict(f.compat().wait().unwrap(), waiter_ts, lock_info, *commit_ts.decr()),
             wake_up_delay_duration - 50,
             wake_up_delay_duration + 200,
         );
@@ -1209,7 +1210,7 @@ pub mod tests {
         std::thread::spawn(move || {
             // Waiters2's lifetime can't exceed it timeout.
             assert_elapsed(
-                || expect_write_conflict(f2.wait().unwrap(), 30.into(), lock_info2, 15.into()),
+                || expect_write_conflict(f2.compat().wait().unwrap(), 30.into(), lock_info2, 15.into()),
                 30,
                 100,
             );
@@ -1218,7 +1219,7 @@ pub mod tests {
         // It will increase waiter2's timeout to wake_up_delay_duration.
         scheduler.wake_up(lock.ts, vec![lock.hash], commit_ts);
         assert_elapsed(
-            || expect_write_conflict(f1.wait().unwrap(), 20.into(), lock_info1, commit_ts),
+            || expect_write_conflict(f1.compat().wait().unwrap(), 20.into(), lock_info1, commit_ts),
             0,
             200,
         );
@@ -1247,7 +1248,7 @@ pub mod tests {
         );
         scheduler.deadlock(waiter_ts, lock, 30);
         assert_elapsed(
-            || expect_deadlock(f.wait().unwrap(), waiter_ts, lock_info, 30),
+            || expect_deadlock(f.compat().wait().unwrap(), waiter_ts, lock_info, 30),
             0,
             200,
         );
@@ -1282,13 +1283,13 @@ pub mod tests {
         );
         // Should notify duplicated waiter immediately.
         assert_elapsed(
-            || expect_key_is_locked(f1.wait().unwrap().unwrap(), lock_info1),
+            || expect_key_is_locked(f1.compat().wait().unwrap().unwrap(), lock_info1),
             0,
             200,
         );
         // The new waiter will be wake up after timeout.
         assert_elapsed(
-            || expect_key_is_locked(f2.wait().unwrap().unwrap(), lock_info2),
+            || expect_key_is_locked(f2.compat().wait().unwrap().unwrap(), lock_info2),
             900,
             1200,
         );

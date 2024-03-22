@@ -6,6 +6,7 @@ use engine::rocks::util::stats as rocksdb_stats;
 use engine::Engines;
 use fail;
 use futures::{future, stream, Future, Stream};
+use futures03::TryFutureExt;
 use futures_cpupool::CpuPool;
 use grpcio::{Error as GrpcError, WriteFlags};
 use grpcio::{RpcContext, RpcStatus, RpcStatusCode, ServerStreamingSink, UnarySink};
@@ -14,7 +15,7 @@ use kvproto::raft_cmdpb::{
     AdminCmdType, AdminRequest, RaftCmdRequest, RaftRequestHeader, RegionDetailResponse,
     StatusCmdType, StatusRequest,
 };
-use tokio_sync::oneshot;
+use tokio::sync::oneshot;
 
 use crate::config::ConfigController;
 use crate::server::debug::{Debugger, Error};
@@ -524,7 +525,7 @@ fn region_detail<T: RaftStoreRouter>(
     future::result(raft_router.send_command(raft_cmd, cb))
         .map_err(|e| Error::Other(Box::new(e)))
         .and_then(move |_| {
-            rx.map_err(|e| Error::Other(Box::new(e)))
+            rx.compat().map_err(|e| Error::Other(Box::new(e)))
                 .and_then(move |mut r| {
                     if r.response.get_header().has_error() {
                         let e = r.response.get_header().get_error();
@@ -561,7 +562,7 @@ fn consistency_check<T: RaftStoreRouter>(
     future::result(raft_router.send_command(raft_cmd, cb))
         .map_err(|e| Error::Other(Box::new(e)))
         .and_then(move |_| {
-            rx.map_err(|e| Error::Other(Box::new(e)))
+            rx.compat().map_err(|e| Error::Other(Box::new(e)))
                 .and_then(move |r| {
                     if r.response.get_header().has_error() {
                         let e = r.response.get_header().get_error();

@@ -23,6 +23,7 @@ use futures::future::Either;
 use futures::{future, Future, Sink, Stream};
 use futures03::compat::Stream01CompatExt;
 use futures03::stream::StreamExt;
+use futures03::TryFutureExt;
 use grpcio::{
     ClientStreamingSink, DuplexSink, Error as GrpcError, RequestStream, RpcContext, RpcStatus,
     RpcStatusCode, UnarySink, WriteFlags,
@@ -287,7 +288,7 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
         let (cb, f) = paired_future_callback();
         let res = self.gc_worker.start_collecting(req.get_max_ts().into(), cb);
 
-        let future = AndThenWith::new(res, f.map_err(Error::from))
+        let future = AndThenWith::new(res, f.compat().map_err(Error::from))
             .and_then(|v| {
                 let mut resp = RegisterLockObserverResponse::default();
                 if let Err(e) = v {
@@ -325,7 +326,7 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
             .gc_worker
             .get_collected_locks(req.get_max_ts().into(), cb);
 
-        let future = AndThenWith::new(res, f.map_err(Error::from))
+        let future = AndThenWith::new(res, f.compat().map_err(Error::from))
             .and_then(|v| {
                 let mut resp = CheckLockObserverResponse::default();
                 match v {
@@ -365,7 +366,7 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
         let (cb, f) = paired_future_callback();
         let res = self.gc_worker.stop_collecting(req.get_max_ts().into(), cb);
 
-        let future = AndThenWith::new(res, f.map_err(Error::from))
+        let future = AndThenWith::new(res, f.compat().map_err(Error::from))
             .and_then(|v| {
                 let mut resp = RemoveLockObserverResponse::default();
                 if let Err(e) = v {
@@ -407,7 +408,7 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
             cb,
         );
 
-        let future = AndThenWith::new(res, f.map_err(Error::from))
+        let future = AndThenWith::new(res, f.compat().map_err(Error::from))
             .and_then(|v| {
                 let mut resp = PhysicalScanLockResponse::default();
                 match v {
@@ -454,7 +455,7 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
             cb,
         );
 
-        let future = AndThenWith::new(res, f.map_err(Error::from))
+        let future = AndThenWith::new(res, f.compat().map_err(Error::from))
             .and_then(|v| {
                 let mut resp = UnsafeDestroyRangeResponse::default();
                 // Region error is impossible here.
@@ -616,6 +617,7 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
         }
 
         let future = future
+            .compat()
             .map_err(Error::from)
             .map(move |mut v| {
                 let mut resp = SplitRegionResponse::default();
@@ -697,6 +699,7 @@ impl<T: RaftStoreRouter + 'static, E: Engine, L: LockManager> Tikv for Service<T
         }
 
         let future = future
+            .compat()
             .map_err(Error::from)
             .map(move |mut v| {
                 let mut resp = ReadIndexResponse::default();
@@ -1104,7 +1107,7 @@ fn future_gc<E: Engine>(
     let (cb, f) = paired_future_callback();
     let res = gc_worker.gc(req.take_context(), req.get_safe_point().into(), cb);
 
-    AndThenWith::new(res, f.map_err(Error::from)).map(|v| {
+    AndThenWith::new(res, f.compat().map_err(Error::from)).map(|v| {
         let mut resp = GcResponse::default();
         if let Some(err) = extract_region_error(&v) {
             resp.set_region_error(err);
@@ -1128,7 +1131,7 @@ fn future_delete_range<E: Engine, L: LockManager>(
         cb,
     );
 
-    AndThenWith::new(res, f.map_err(Error::from)).map(|v| {
+    AndThenWith::new(res, f.compat().map_err(Error::from)).map(|v| {
         let mut resp = DeleteRangeResponse::default();
         if let Some(err) = extract_region_error(&v) {
             resp.set_region_error(err);
@@ -1246,7 +1249,7 @@ fn future_raw_put<E: Engine, L: LockManager>(
         cb,
     );
 
-    AndThenWith::new(res, future.map_err(Error::from)).map(|v| {
+    AndThenWith::new(res, future.compat().map_err(Error::from)).map(|v| {
         let mut resp = RawPutResponse::default();
         if let Some(err) = extract_region_error(&v) {
             resp.set_region_error(err);
@@ -1271,7 +1274,7 @@ fn future_raw_batch_put<E: Engine, L: LockManager>(
     let (cb, f) = paired_future_callback();
     let res = storage.raw_batch_put(req.take_context(), cf, pairs, cb);
 
-    AndThenWith::new(res, f.map_err(Error::from)).map(|v| {
+    AndThenWith::new(res, f.compat().map_err(Error::from)).map(|v| {
         let mut resp = RawBatchPutResponse::default();
         if let Some(err) = extract_region_error(&v) {
             resp.set_region_error(err);
@@ -1289,7 +1292,7 @@ fn future_raw_delete<E: Engine, L: LockManager>(
     let (cb, f) = paired_future_callback();
     let res = storage.raw_delete(req.take_context(), req.take_cf(), req.take_key(), cb);
 
-    AndThenWith::new(res, f.map_err(Error::from)).map(|v| {
+    AndThenWith::new(res, f.compat().map_err(Error::from)).map(|v| {
         let mut resp = RawDeleteResponse::default();
         if let Some(err) = extract_region_error(&v) {
             resp.set_region_error(err);
@@ -1309,7 +1312,7 @@ fn future_raw_batch_delete<E: Engine, L: LockManager>(
     let (cb, f) = paired_future_callback();
     let res = storage.raw_batch_delete(req.take_context(), cf, keys, cb);
 
-    AndThenWith::new(res, f.map_err(Error::from)).map(|v| {
+    AndThenWith::new(res, f.compat().map_err(Error::from)).map(|v| {
         let mut resp = RawBatchDeleteResponse::default();
         if let Some(err) = extract_region_error(&v) {
             resp.set_region_error(err);
@@ -1387,7 +1390,7 @@ fn future_raw_delete_range<E: Engine, L: LockManager>(
         cb,
     );
 
-    AndThenWith::new(res, f.map_err(Error::from)).map(|v| {
+    AndThenWith::new(res, f.compat().map_err(Error::from)).map(|v| {
         let mut resp = RawDeleteRangeResponse::default();
         if let Some(err) = extract_region_error(&v) {
             resp.set_region_error(err);
@@ -1408,7 +1411,7 @@ macro_rules! txn_command_future {
             let (cb, f) = paired_future_callback();
             let res = storage.sched_txn_command($req.into(), cb);
 
-            AndThenWith::new(res, f.map_err(Error::from)).map(move |$v| {
+            AndThenWith::new(res, f.compat().map_err(Error::from)).map(move |$v| {
                 let mut $resp = $resp_ty::default();
                 if let Some(err) = extract_region_error(&$v) {
                     $resp.set_region_error(err);
@@ -1582,7 +1585,7 @@ fn raftstore_error_to_region_error(e: RaftStoreError, region_id: u64) -> RegionE
 mod tests {
     use super::*;
     use std::thread;
-    use tokio_sync::oneshot;
+    use tokio::sync::oneshot;
 
     #[test]
     fn test_poll_future_notify_with_slow_source() {
@@ -1592,21 +1595,21 @@ mod tests {
         thread::Builder::new()
             .name("source".to_owned())
             .spawn(move || {
-                signal_rx.wait().unwrap();
+                signal_rx.compat().wait().unwrap();
                 tx.send(100).unwrap();
             })
             .unwrap();
 
         let (tx1, rx1) = oneshot::channel::<usize>();
         poll_future_notify(
-            rx.map(move |i| {
+            rx.compat().map(move |i| {
                 assert_eq!(thread::current().name(), Some("source"));
                 tx1.send(i + 100).unwrap();
             })
             .map_err(|_| ()),
         );
         signal_tx.send(()).unwrap();
-        assert_eq!(rx1.wait().unwrap(), 200);
+        assert_eq!(rx1.compat().wait().unwrap(), 200);
     }
 
     #[test]
@@ -1622,14 +1625,14 @@ mod tests {
             .unwrap();
 
         let (tx1, rx1) = oneshot::channel::<usize>();
-        signal_rx.wait().unwrap();
+        signal_rx.compat().wait().unwrap();
         poll_future_notify(
-            rx.map(move |i| {
+            rx.compat().map(move |i| {
                 assert_ne!(thread::current().name(), Some("source"));
                 tx1.send(i + 100).unwrap();
             })
             .map_err(|_| ()),
         );
-        assert_eq!(rx1.wait().unwrap(), 200);
+        assert_eq!(rx1.compat().wait().unwrap(), 200);
     }
 }

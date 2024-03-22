@@ -925,6 +925,7 @@ mod tests {
     use crate::storage::lock_manager::DummyLockManager;
     use crate::storage::{txn::commands, Storage, TestStorageBuilder};
     use futures::Future;
+    use futures03::TryFutureExt;
     use kvproto::kvrpcpb::Op;
     use kvproto::metapb;
     use std::collections::BTreeMap;
@@ -1195,7 +1196,7 @@ mod tests {
             gc_worker
                 .physical_scan_lock(Context::default(), max_ts.into(), start_key, limit, cb)
                 .unwrap();
-            f.wait().unwrap()
+            f.compat().wait().unwrap()
         };
 
         let mut expected_lock_info = Vec::new();

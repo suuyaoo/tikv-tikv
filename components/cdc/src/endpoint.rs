@@ -967,11 +967,11 @@ impl Initializer {
         // Wait all delta changes earlier than the incremental scan snapshot be
         // sent to the downstream, so that they must be consumed before the
         // incremental scan result.
-        if let Err(e) = Compat01As03::new(incremental_scan_barrier_fut).await {
+        if let Err(e) = incremental_scan_barrier_fut.await {
             return Err(Error::Other(box_err!(e)));
         }
 
-        match Compat01As03::new(fut).await {
+        match fut.await {
             Ok(resp) => self.on_change_cmd_response(resp).await,
             Err(e) => Err(Error::Other(box_err!(e))),
         }
@@ -1107,7 +1107,7 @@ impl Initializer {
         if done {
             let (cb, fut) = tikv_util::future::paired_future_callback();
             events.push(CdcEvent::Barrier(Some(cb)));
-            barrier = Some(Compat01As03::new(fut));
+            barrier = Some(fut);
         }
         if let Err(e) = self.sink.send_all(events).await {
             error!("cdc send scan event failed"; "req_id" => ?self.request_id);
