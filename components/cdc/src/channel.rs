@@ -452,7 +452,7 @@ where
     F: std::future::Future<Output = I> + Unpin,
 {
     use futures03::FutureExt;
-    let mut timeout = futures_timer::Delay::new(dur).fuse();
+    let mut timeout = tokio::time::delay_for(dur).fuse();
     let mut f = fut.fuse();
     futures03::executor::block_on(async {
         futures03::select! {
