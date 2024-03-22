@@ -1806,53 +1806,6 @@ impl Default for BackupConfig {
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug, Configuration)]
 #[serde(default)]
 #[serde(rename_all = "kebab-case")]
-pub struct CdcConfig {
-    pub min_ts_interval: ReadableDuration,
-    // TODO(hi-rustin): Consider resizing the thread pool based on `incremental_scan_threads`.
-    #[config(skip)]
-    pub incremental_scan_threads: usize,
-    pub incremental_scan_concurrency: usize,
-    pub incremental_scan_speed_limit: ReadableSize,
-    pub sink_memory_quota: ReadableSize,
-}
-
-impl Default for CdcConfig {
-    fn default() -> Self {
-        Self {
-            min_ts_interval: ReadableDuration::secs(1),
-            incremental_scan_threads: 4,
-            // At most 6 concurrent running tasks.
-            incremental_scan_concurrency: 6,
-            // TiCDC requires a SSD, the typical write speed of SSD
-            // is more than 500MB/s, so 128MB/s is enough.
-            incremental_scan_speed_limit: ReadableSize::mb(128),
-            // 512MB memory for CDC sink.
-            sink_memory_quota: ReadableSize::mb(512),
-        }
-    }
-}
-
-impl CdcConfig {
-    pub fn validate(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.min_ts_interval == ReadableDuration::secs(0) {
-            return Err("cdc.min-ts-interval can't be 0s".into());
-        }
-        if self.incremental_scan_threads == 0 {
-            return Err("cdc.incremental-scan-threads can't be 0".into());
-        }
-        if self.incremental_scan_concurrency < self.incremental_scan_threads {
-            return Err(
-                "cdc.incremental-scan-concurrency must be larger than cdc.incremental-scan-threads"
-                    .into(),
-            );
-        }
-        Ok(())
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug, Configuration)]
-#[serde(default)]
-#[serde(rename_all = "kebab-case")]
 pub struct TiKvConfig {
     #[doc(hidden)]
     #[serde(skip_serializing)]
@@ -1929,9 +1882,6 @@ pub struct TiKvConfig {
 
     #[config(submodule)]
     pub split: SplitConfig,
-
-    #[config(submodule)]
-    pub cdc: CdcConfig,
 }
 
 impl Default for TiKvConfig {
@@ -1961,7 +1911,6 @@ impl Default for TiKvConfig {
             pessimistic_txn: PessimisticTxnConfig::default(),
             gc: GcConfig::default(),
             split: SplitConfig::default(),
-            cdc: CdcConfig::default(),
         }
     }
 }
@@ -2065,7 +2014,6 @@ impl TiKvConfig {
         self.security.validate()?;
         self.import.validate()?;
         self.backup.validate()?;
-        self.cdc.validate()?;
 
         Ok(())
     }
@@ -2473,7 +2421,6 @@ pub enum Module {
     Backup,
     PessimisticTxn,
     Gc,
-    CDC,
     Split,
     Unknown(String),
 }
@@ -2496,7 +2443,6 @@ impl From<&str> for Module {
             "backup" => Module::Backup,
             "pessimistic_txn" => Module::PessimisticTxn,
             "gc" => Module::Gc,
-            "cdc" => Module::CDC,
             n => Module::Unknown(n.to_owned()),
         }
     }
@@ -3006,51 +2952,5 @@ mod tests {
             cfg.raft_store.region_split_check_diff.0,
             default_region_split_check_diff + 1
         );
-    }
-
-    #[test]
-    fn test_cdc() {
-        let content = r#"
-            [cdc]
-        "#;
-        let mut cfg: TiKvConfig = toml::from_str(content).unwrap();
-        cfg.validate().unwrap();
-
-        // old-value-cache-size is deprecated, 0 must not report error.
-        let content = r#"
-            [cdc]
-            old-value-cache-size = 0
-        "#;
-        let mut cfg: TiKvConfig = toml::from_str(content).unwrap();
-        cfg.validate().unwrap();
-
-        let content = r#"
-            [cdc]
-            min-ts-interval = "0s"
-        "#;
-        let mut cfg: TiKvConfig = toml::from_str(content).unwrap();
-        cfg.validate().unwrap_err();
-
-        let content = r#"
-            [cdc]
-            incremental-scan-threads = 0
-        "#;
-        let mut cfg: TiKvConfig = toml::from_str(content).unwrap();
-        cfg.validate().unwrap_err();
-
-        let content = r#"
-            [cdc]
-            incremental-scan-concurrency = 0
-        "#;
-        let mut cfg: TiKvConfig = toml::from_str(content).unwrap();
-        cfg.validate().unwrap_err();
-
-        let content = r#"
-            [cdc]
-            incremental-scan-concurrency = 1
-            incremental-scan-threads = 2
-        "#;
-        let mut cfg: TiKvConfig = toml::from_str(content).unwrap();
-        cfg.validate().unwrap_err();
     }
 }

@@ -25,7 +25,6 @@ protobuf-codec = [
   "raftstore/protobuf-codec",
   "tikv/protobuf-codec",
   "txn_types/protobuf-codec",
-  "cdc/protobuf-codec",
 ]
 prost-codec = [
   "backup/prost-codec",
@@ -38,7 +37,6 @@ prost-codec = [
   "raftstore/prost-codec",
   "tikv/prost-codec",
   "txn_types/prost-codec",
-  "cdc/prost-codec",
 ]
 
 [lib]
@@ -52,7 +50,6 @@ name = "tikv-ctl"
 
 [dependencies]
 backup = { path = "../components/backup", default-features = false }
-cdc = { path = "../components/cdc" }
 chrono = "0.4"
 clap = "2.32"
 engine = { path = "../components/engine" }

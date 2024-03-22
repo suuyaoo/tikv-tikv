@@ -523,13 +523,6 @@ fn test_serde_custom_tikv_config() {
         wake_up_delay_duration: ReadableDuration::millis(100),
         pipelined: true,
     };
-    value.cdc = CdcConfig {
-        min_ts_interval: ReadableDuration::secs(4),
-        incremental_scan_threads: 3,
-        incremental_scan_concurrency: 4,
-        incremental_scan_speed_limit: ReadableSize(7),
-        sink_memory_quota: ReadableSize::mb(7),
-    };
 
     let custom = read_file_in_project_dir("integrations/config/test-custom.toml");
     let load = toml::from_str(&custom).unwrap();

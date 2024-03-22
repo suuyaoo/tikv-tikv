@@ -243,7 +243,7 @@ run-test:
 	cargo test --workspace \
 		--exclude fuzzer-honggfuzz --exclude fuzzer-afl --exclude fuzzer-libfuzzer \
 		--features "${ENABLE_FEATURES}" ${EXTRA_CARGO_ARGS} -- --nocapture && \
-	pushd components/cdc && cargo test --features "${ENABLE_FEATURES} failpoints" ${EXTRA_CARGO_ARGS} -- --nocapture && popd && \
+	cargo test --features "${ENABLE_FEATURES} failpoints" ${EXTRA_CARGO_ARGS} -- --nocapture && \
 	if [[ "`uname`" == "Linux" ]]; then \
 		export MALLOC_CONF=prof:true,prof_active:false && \
 		cargo test --features "${ENABLE_FEATURES} mem-profiling" ${EXTRA_CARGO_ARGS} -p tikv_alloc -- --nocapture --ignored && \
@@ -283,15 +283,15 @@ ALLOWED_CLIPPY_LINTS=-A clippy::module_inception -A clippy::needless_pass_by_val
 	-A clippy::match_wild_err_arm -A clippy::blacklisted_name -A clippy::redundant_closure_call \
 	-A clippy::identity_conversion -A clippy::new_ret_no_self
 
-# PROST feature works differently in test cdc and backup package, they need to be checked under their folders.
+# PROST feature works differently in test backup package, they need to be checked under their folders.
 ifneq (,$(findstring prost-codec,"$(ENABLE_FEATURES)"))
 clippy: pre-clippy
 	@./scripts/check-redact-log
 	@cargo clippy --workspace --all-targets --no-default-features \
-		--exclude cdc --exclude backup --exclude tests --exclude cmd \
+		--exclude backup --exclude tests --exclude cmd \
 		--exclude fuzz-targets --exclude fuzzer-honggfuzz --exclude fuzzer-afl --exclude fuzzer-libfuzzer \
 		--features "${ENABLE_FEATURES}" -- $(ALLOWED_CLIPPY_LINTS)
-	@for pkg in "components/cdc" "components/backup" "cmd" "tests"; do \
+	@for pkg in "components/backup" "cmd" "tests"; do \
 		cd $$pkg && \
 		cargo clippy --all-targets --no-default-features \
 			--features "${ENABLE_FEATURES}" -- $(ALLOWED_CLIPPY_LINTS) && \

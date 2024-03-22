@@ -461,10 +461,3 @@ enabled = false
 wait-for-lock-timeout = "10ms"
 wake-up-delay-duration = 100 # test backward compatibility
 pipelined = true
-
-[cdc]
-min-ts-interval = "4s"
-incremental-scan-threads = 3
-incremental-scan-concurrency = 4
-incremental-scan-speed-limit = 7
-sink-memory-quota = "7MB"

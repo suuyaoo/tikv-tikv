@@ -358,48 +358,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cdc"
-version = "0.0.1"
-dependencies = [
- "bitflags",
- "configuration",
- "criterion",
- "crossbeam",
- "engine",
- "engine_rocks",
- "engine_traits",
- "fail",
- "failure",
- "futures 0.1.31",
- "futures 0.3.30",
- "grpcio",
- "kvproto",
- "lazy_static",
- "log_wrappers",
- "matches",
- "panic_hook",
- "pd_client",
- "prometheus",
- "prost",
- "protobuf",
- "raft",
- "raftstore",
- "resolved_ts",
- "security",
- "semver",
- "slog",
- "slog-global",
- "tempfile",
- "test_raftstore",
- "test_util",
- "tikv",
- "tikv_util",
- "time",
- "tokio",
- "txn_types",
-]
-
-[[package]]
 name = "cexpr"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -489,7 +447,6 @@ name = "cmd"
 version = "0.0.1"
 dependencies = [
  "backup",
- "cdc",
  "chrono",
  "clap",
  "engine",
@@ -2804,17 +2761,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "resolved_ts"
-version = "0.0.1"
-dependencies = [
- "log_wrappers",
- "slog",
- "slog-global",
- "tikv_util",
- "txn_types",
-]
-
-[[package]]
 name = "rev_lines"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3431,7 +3377,6 @@ dependencies = [
  "arrow",
  "batch-system",
  "byteorder",
- "cdc",
  "configuration",
  "crc64fast",
  "criterion",

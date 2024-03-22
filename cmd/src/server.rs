@@ -9,7 +9,6 @@
 //! We keep these components in the `TiKVServer` struct.
 
 use crate::{setup::*, signal_handler};
-use cdc::{CdcConfigManager, MemoryQuota};
 use engine::rocks;
 use engine_rocks::{
     from_rocks_compression_type, Compat, RocksEngine, RocksMetricsFlusher,
@@ -20,7 +19,7 @@ use engine_traits::{KvEngines, MetricsFlusher, CF_DEFAULT, CF_WRITE};
 use fs2::FileExt;
 use futures_cpupool::Builder;
 use kvproto::{
-    backup::create_backup, cdcpb::create_change_data, deadlock::create_deadlock,
+    backup::create_backup, deadlock::create_deadlock,
     debugpb::create_debug, diagnosticspb::create_diagnostics, import_sstpb::create_import_sst,
 };
 use pd_client::{PdClient, RpcClient};
@@ -142,8 +141,6 @@ struct Servers {
     server: Server<ServerRaftStoreRouter, resolve::PdStoreAddrResolver>,
     node: Node<RpcClient>,
     importer: Arc<SSTImporter>,
-    cdc_scheduler: tikv_util::worker::Scheduler<cdc::Task>,
-    cdc_memory_quota: MemoryQuota,
 }
 
 impl TiKVServer {
@@ -511,17 +508,6 @@ impl TiKVServer {
             .max_total_size(self.config.server.snap_max_total_size.0)
             .build(snap_path, Some(self.router.clone()));
 
-        // Create and register cdc.
-        let mut cdc_worker = Box::new(tikv_util::worker::Worker::new("cdc"));
-        let cdc_scheduler = cdc_worker.scheduler();
-        let cdc_ob = cdc::CdcObserver::new(cdc_scheduler.clone());
-        cdc_ob.register_to(&mut coprocessor_host);
-        // Register cdc config.
-        cfg_controller.register(
-            tikv::config::Module::CDC,
-            Box::new(CdcConfigManager(cdc_worker.scheduler())),
-        );
-
         let server_config = Arc::new(self.config.server.clone());
 
         // Create server
@@ -617,31 +603,11 @@ impl TiKVServer {
             fatal!("failed to start auto_gc on storage, error: {}", e);
         }
 
-        // Start CDC.
-        let raft_router = self.engines.as_ref().unwrap().raft_router.clone();
-        let cdc_memory_quota = MemoryQuota::new(self.config.cdc.sink_memory_quota.0 as _);
-        let cdc_endpoint = cdc::Endpoint::new(
-            &self.config.cdc,
-            self.pd_client.clone(),
-            cdc_worker.scheduler(),
-            raft_router,
-            cdc_ob,
-            engines.store_meta.clone(),
-            cdc_memory_quota.clone(),
-        );
-        let cdc_timer = cdc_endpoint.new_timer();
-        cdc_worker
-            .start_with_timer(cdc_endpoint, cdc_timer)
-            .unwrap_or_else(|e| fatal!("failed to start cdc: {}", e));
-        self.to_stop.push(cdc_worker);
-
         self.servers = Some(Servers {
             lock_mgr,
             server,
             node,
             importer,
-            cdc_scheduler,
-            cdc_memory_quota,
         });
 
         server_config
@@ -757,19 +723,6 @@ impl TiKVServer {
         backup_worker
             .start(backup_endpoint)
             .unwrap_or_else(|e| fatal!("failed to start backup endpoint: {}", e));
-
-        let cdc_service = cdc::Service::new(
-            servers.cdc_scheduler.clone(),
-            self.security_mgr.clone(),
-            servers.cdc_memory_quota.clone(),
-        );
-        if servers
-            .server
-            .register_service(create_change_data(cdc_service))
-            .is_some()
-        {
-            fatal!("failed to register cdc service");
-        }
 
         self.to_stop.push(backup_worker);
     }
