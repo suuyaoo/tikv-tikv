@@ -28,9 +28,6 @@ pub use self::file::FileBackend;
 mod metadata;
 use self::metadata::*;
 
-mod kms;
-pub use self::kms::{DataKeyPair, EncryptedKey, KmsBackend, KmsProvider};
-
 #[derive(Default, Debug, Clone)]
 pub struct PlaintextBackend {}
 

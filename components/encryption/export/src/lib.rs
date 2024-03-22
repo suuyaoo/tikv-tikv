@@ -1,6 +1,6 @@
 // Copyright 2021 TiKV Project Authors. Licensed under Apache-2.0.
 use std::path::Path;
-use tikv_util::{error, info};
+use tikv_util::{error};
 
 pub use encryption::{
     encryption_method_from_db_encryption_method, Backend, DataKeyManager, DataKeyManagerArgs,
@@ -9,7 +9,6 @@ pub use encryption::{
 use encryption::{
     FileBackend, PlaintextBackend,
 };
-use tikv_util::box_err;
 
 pub fn data_key_manager_from_config(
     config: &EncryptionConfig,
@@ -34,24 +33,11 @@ pub fn create_backend(config: &MasterKeyConfig) -> Result<Box<dyn Backend>> {
     result
 }
 
-pub fn create_cloud_backend(config: &KmsConfig) -> Result<Box<dyn Backend>> {
-    info!("Encryption init cloud backend";
-        "region" => &config.region,
-        "endpoint" => &config.endpoint,
-        "key_id" => &config.key_id,
-        "vendor" => &config.vendor,
-    );
-    match config.vendor.as_str() {
-        provider => Err(Error::Other(box_err!("provider not found {}", provider))),
-    }
-}
-
 fn create_backend_inner(config: &MasterKeyConfig) -> Result<Box<dyn Backend>> {
     Ok(match config {
         MasterKeyConfig::Plaintext => Box::new(PlaintextBackend {}) as _,
         MasterKeyConfig::File { config } => {
             Box::new(FileBackend::new(Path::new(&config.path))?) as _
         }
-        MasterKeyConfig::Kms { config } => return create_cloud_backend(config),
     })
 }

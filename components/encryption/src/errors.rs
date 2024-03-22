@@ -8,7 +8,6 @@ use error_code::{self, ErrorCode, ErrorCodeExt};
 use openssl::error::ErrorStack as CrypterError;
 use protobuf::ProtobufError;
 use thiserror::Error;
-use tikv_util::stream::RetryError;
 
 /// The error type for encryption.
 #[derive(Debug, Error)]
@@ -81,20 +80,3 @@ impl ErrorCodeExt for Error {
     }
 }
 
-impl RetryError for Error {
-    fn is_retryable(&self) -> bool {
-        // This should be refined.
-        // However, only Error::Tls should be encountered
-        match self {
-            Error::TailRecordParseIncomplete => true,
-            Error::Rocks(_) => true,
-            Error::Io(_) => true,
-            Error::Crypter(_) => true,
-            Error::Proto(_) => true,
-            Error::UnknownEncryption => true,
-            Error::WrongMasterKey(_) => false,
-            Error::BothMasterKeyFail(..) => false,
-            Error::Other(_) => true,
-        }
-    }
-}

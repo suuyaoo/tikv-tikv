@@ -5,15 +5,11 @@ pub enum MetadataKey {
     Method,
     Iv,
     AesGcmTag,
-    KmsVendor,
-    KmsCiphertextKey,
 }
 
 const METADATA_KEY_METHOD: &str = "method";
 const METADATA_KEY_IV: &str = "iv";
 const METADATA_KEY_AES_GCM_TAG: &str = "aes_gcm_tag";
-const METADATA_KEY_KMS_VENDOR: &str = "kms_vendor";
-const METADATA_KEY_KMS_ENCRYPTED_KEY: &str = "kms_ciphertext_key";
 
 impl MetadataKey {
     pub fn as_str(self) -> &'static str {
@@ -21,8 +17,6 @@ impl MetadataKey {
             MetadataKey::Method => METADATA_KEY_METHOD,
             MetadataKey::Iv => METADATA_KEY_IV,
             MetadataKey::AesGcmTag => METADATA_KEY_AES_GCM_TAG,
-            MetadataKey::KmsVendor => METADATA_KEY_KMS_VENDOR,
-            MetadataKey::KmsCiphertextKey => METADATA_KEY_KMS_ENCRYPTED_KEY,
         }
     }
 }

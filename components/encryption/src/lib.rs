@@ -23,5 +23,5 @@ pub use self::io::{
 };
 pub use self::manager::{DataKeyManager, DataKeyManagerArgs};
 pub use self::master_key::{
-    Backend, DataKeyPair, EncryptedKey, FileBackend, KmsBackend, KmsProvider, PlaintextBackend,
+    Backend, FileBackend, PlaintextBackend,
 };
