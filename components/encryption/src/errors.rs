@@ -1,6 +1,6 @@
 // Copyright 2020 TiKV Project Authors. Licensed under Apache-2.0.
 
-use std::fmt::{Debug, Display};
+use std::fmt::{Debug};
 use std::io::{Error as IoError, ErrorKind};
 use std::{error, result};
 
@@ -9,8 +9,6 @@ use openssl::error::ErrorStack as CrypterError;
 use protobuf::ProtobufError;
 use thiserror::Error;
 use tikv_util::stream::RetryError;
-
-pub trait RetryCodedError: Debug + Display + ErrorCodeExt + RetryError + Send + Sync {}
 
 /// The error type for encryption.
 #[derive(Debug, Error)]
@@ -21,9 +19,6 @@ pub enum Error {
     // length is insufficient or the crc checksum fails.
     #[error("Recoverable tail record corruption while parsing file dictionary")]
     TailRecordParseIncomplete,
-    // Currently only in use by cloud KMS
-    #[error("Cloud KMS error {0}")]
-    RetryCodedError(Box<dyn RetryCodedError>),
     #[error("RocksDB error {0}")]
     Rocks(String),
     #[error("IO error {0}")]
@@ -73,7 +68,6 @@ pub type Result<T> = result::Result<T, Error>;
 impl ErrorCodeExt for Error {
     fn error_code(&self) -> ErrorCode {
         match self {
-            Error::RetryCodedError(err) => err.error_code(),
             Error::TailRecordParseIncomplete => error_code::encryption::PARSE_INCOMPLETE,
             Error::Rocks(_) => error_code::encryption::ROCKS,
             Error::Io(_) => error_code::encryption::IO,
@@ -92,7 +86,6 @@ impl RetryError for Error {
         // This should be refined.
         // However, only Error::Tls should be encountered
         match self {
-            Error::RetryCodedError(err) => err.is_retryable(),
             Error::TailRecordParseIncomplete => true,
             Error::Rocks(_) => true,
             Error::Io(_) => true,
