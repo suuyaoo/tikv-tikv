@@ -11,7 +11,7 @@ use async_channel::SendError;
 use concurrency_manager::ConcurrencyManager;
 use engine_rocks::raw::DB;
 use engine_traits::{name_to_cf, CfName, SstCompressionType};
-use external_storage::{BackendConfig, HdfsConfig};
+use external_storage::BackendConfig;
 use external_storage_export::{create_storage, ExternalStorage};
 use futures::channel::mpsc::*;
 use kvproto::brpb::*;
@@ -772,17 +772,6 @@ impl<E: Engine, R: RegionInfoProvider + Clone + 'static> Endpoint<E, R> {
 
     fn get_config(&self) -> BackendConfig {
         BackendConfig {
-            hdfs_config: HdfsConfig {
-                hadoop_home: self.config_manager.0.read().unwrap().hadoop.home.clone(),
-                linux_user: self
-                    .config_manager
-                    .0
-                    .read()
-                    .unwrap()
-                    .hadoop
-                    .linux_user
-                    .clone(),
-            },
         }
     }
 
@@ -1708,10 +1697,9 @@ pub mod tests {
     fn test_backup_file_name() {
         let region = metapb::Region::default();
         let store_id = 1;
-        let test_cases = vec!["local", "hdfs"];
+        let test_cases = vec!["local"];
         let test_target = vec![
             "1/0_0_000",
-            "1_0_0_000",
         ];
 
         let delimiter = "_";
@@ -1725,7 +1713,7 @@ pub mod tests {
             assert_eq!(target.to_string(), prefix_arr.join(delimiter));
         }
 
-        let test_target = vec![ "1/0_0", "1_0_0"];
+        let test_target = vec![ "1/0_0"];
         for (storage_name, target) in test_cases.iter().zip(test_target.iter()) {
             let key = None;
             let filename = backup_file_name(store_id, &region, key, storage_name);

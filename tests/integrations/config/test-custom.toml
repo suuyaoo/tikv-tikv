@@ -598,10 +598,6 @@ batch-size = 7
 s3-multi-part-size = "15MB"
 sst-max-size = "789MB"
 
-[backup.hadoop]
-home = "/root/hadoop"
-linux-user = "hadoop"
-
 [import]
 num-threads = 123
 stream-channel-window = 123

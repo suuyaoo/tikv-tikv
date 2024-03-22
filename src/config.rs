@@ -2221,14 +2221,6 @@ mod readpool_tests {
     }
 }
 
-#[derive(Clone, Default, Serialize, Deserialize, PartialEq, Debug, OnlineConfig)]
-#[serde(default)]
-#[serde(rename_all = "kebab-case")]
-pub struct HadoopConfig {
-    pub home: String,
-    pub linux_user: String,
-}
-
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug, OnlineConfig)]
 #[serde(default)]
 #[serde(rename_all = "kebab-case")]
@@ -2240,8 +2232,6 @@ pub struct BackupConfig {
     pub auto_tune_remain_threads: usize,
     pub auto_tune_refresh_interval: ReadableDuration,
     pub io_thread_size: usize,
-    #[online_config(submodule)]
-    pub hadoop: HadoopConfig,
 }
 
 impl BackupConfig {
@@ -2270,7 +2260,6 @@ impl Default for BackupConfig {
             auto_tune_remain_threads: (cpu_num * 0.2).round() as usize,
             auto_tune_refresh_interval: ReadableDuration::secs(60),
             io_thread_size: 2,
-            hadoop: Default::default(),
         }
     }
 }

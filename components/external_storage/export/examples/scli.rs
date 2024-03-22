@@ -7,7 +7,7 @@ use std::{
 };
 
 use external_storage_export::{
-    create_storage, make_cloud_backend, make_hdfs_backend,
+    create_storage, make_cloud_backend,
     make_local_backend, make_noop_backend, ExternalStorage, UnpinReader,
 };
 use futures_util::io::{copy, AllowStdIo};
@@ -22,7 +22,6 @@ arg_enum! {
     enum StorageType {
         Noop,
         Local,
-        Hdfs,
         Cloud,
     }
 }
@@ -108,7 +107,6 @@ fn process() -> Result<()> {
         &(match opt.storage {
             StorageType::Noop => make_noop_backend(),
             StorageType::Local => make_local_backend(Path::new(&opt.path.unwrap())),
-            StorageType::Hdfs => make_hdfs_backend(opt.path.unwrap()),
             StorageType::Cloud => create_cloud_storage(&opt)?,
         }),
         Default::default(),

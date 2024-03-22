@@ -22,7 +22,7 @@ use encryption::DataKeyManager;
 use external_storage::dylib_client;
 #[cfg(feature = "cloud-storage-grpc")]
 use external_storage::grpc_client;
-use external_storage::{encrypt_wrap_reader, record_storage_create, BackendConfig, HdfsStorage};
+use external_storage::{encrypt_wrap_reader, record_storage_create, BackendConfig};
 pub use external_storage::{
     read_external_storage_into_file, ExternalStorage, LocalStorage, NoopStorage, UnpinReader,
 };
@@ -125,16 +125,13 @@ fn create_config(backend: &Backend) -> Option<io::Result<Box<dyn BlobConfig>>> {
 /// Create a new storage from the given storage backend description.
 fn create_backend_inner(
     backend: &Backend,
-    backend_config: BackendConfig,
+    _backend_config: BackendConfig,
 ) -> io::Result<Box<dyn ExternalStorage>> {
     let start = Instant::now();
     let storage: Box<dyn ExternalStorage> = match backend {
         Backend::Local(local) => {
             let p = Path::new(&local.path);
             Box::new(LocalStorage::new(p)?) as Box<dyn ExternalStorage>
-        }
-        Backend::Hdfs(hdfs) => {
-            Box::new(HdfsStorage::new(&hdfs.remote, backend_config.hdfs_config)?)
         }
         Backend::Noop(_) => Box::new(NoopStorage::default()) as Box<dyn ExternalStorage>,
         Backend::CloudDynamic(dyn_backend) => match dyn_backend.provider_name.as_str() {
@@ -153,12 +150,6 @@ pub fn make_local_backend(path: &Path) -> StorageBackend {
     let path = path.display().to_string();
     let mut backend = StorageBackend::default();
     backend.mut_local().set_path(path);
-    backend
-}
-
-pub fn make_hdfs_backend(remote: String) -> StorageBackend {
-    let mut backend = StorageBackend::default();
-    backend.mut_hdfs().set_remote(remote);
     backend
 }
 

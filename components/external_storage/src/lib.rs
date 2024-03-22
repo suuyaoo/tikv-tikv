@@ -23,8 +23,6 @@ use tikv_util::stream::{block_on_external_io, READ_BUF_SIZE};
 use tikv_util::time::{Instant, Limiter};
 use tokio::time::timeout;
 
-mod hdfs;
-pub use hdfs::{HdfsConfig, HdfsStorage};
 pub mod local;
 pub use local::LocalStorage;
 mod noop;
@@ -52,7 +50,7 @@ pub struct UnpinReader(pub Box<dyn AsyncRead + Unpin + Send>);
 
 #[derive(Debug, Default)]
 pub struct BackendConfig {
-    pub hdfs_config: HdfsConfig,
+    
 }
 
 /// An abstraction of an external storage.

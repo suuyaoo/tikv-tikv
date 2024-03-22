@@ -216,7 +216,6 @@ impl SSTImporter {
             let start_read = Instant::now();
 
             // prepare to download the file from the external_storage
-            // TODO: pass a config to support hdfs
             let ext_storage = external_storage_export::create_storage(backend, Default::default())?;
             let url = ext_storage.url()?.to_string();
 
