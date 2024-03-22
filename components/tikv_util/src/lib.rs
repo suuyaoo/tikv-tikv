@@ -42,6 +42,7 @@ pub mod config;
 pub mod file;
 pub mod future;
 pub mod future_pool;
+pub mod speed_limit;
 #[macro_use]
 pub mod macros;
 pub mod callback;

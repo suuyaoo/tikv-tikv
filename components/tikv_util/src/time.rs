@@ -6,7 +6,7 @@ use std::sync::mpsc::{self, Sender};
 use std::thread::{self, Builder, JoinHandle};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use async_speed_limit::clock::{BlockingClock, Clock, StandardClock};
+use crate::speed_limit::clock::{BlockingClock, Clock, StandardClock};
 use time::{Duration as TimeDuration, Timespec};
 
 // Re-export duration.
@@ -460,7 +460,7 @@ impl Sub<Instant> for Instant {
     }
 }
 
-/// A coarse clock for `async_speed_limit`.
+/// A coarse clock for `speed_limit`.
 #[derive(Copy, Clone, Default, Debug)]
 pub struct CoarseClock;
 
@@ -484,7 +484,7 @@ impl BlockingClock for CoarseClock {
 }
 
 /// A limiter which uses the coarse clock for measurement.
-pub type Limiter = async_speed_limit::Limiter<CoarseClock>;
+pub type Limiter = crate::speed_limit::Limiter<CoarseClock>;
 
 #[cfg(test)]
 mod tests {
