@@ -265,50 +265,6 @@ fn test_backup_huge_range_and_import() {
 }
 
 #[test]
-fn test_backup_meta() {
-    let mut suite = TestSuite::new(3, 144 * 1024 * 1024);
-    // 3 version for each key.
-    let key_count = 60;
-    suite.must_kv_put(key_count, 3);
-
-    let backup_ts = suite.alloc_ts();
-    // key are order by lexicographical order, 'a'-'z' will cover all
-    let (admin_checksum, admin_total_kvs, admin_total_bytes) =
-        suite.admin_checksum(backup_ts, "a".to_owned(), "z".to_owned());
-
-    // Push down backup request.
-    let tmp = Builder::new().tempdir().unwrap();
-    let storage_path = make_unique_dir(tmp.path());
-    let rx = suite.backup(
-        vec![],   // start
-        vec![],   // end
-        0.into(), // begin_ts
-        backup_ts,
-        &storage_path,
-    );
-    let resps1 = block_on(rx.collect::<Vec<_>>());
-    // Only leader can handle backup.
-    assert_eq!(resps1.len(), 1);
-    let files: Vec<_> = resps1[0].files.clone().into_iter().collect();
-    // Short value is piggybacked in write cf, so we get 1 sst at least.
-    assert!(!files.is_empty());
-    let mut checksum = 0;
-    let mut total_kvs = 0;
-    let mut total_bytes = 0;
-    for f in files {
-        checksum ^= f.get_crc64xor();
-        total_kvs += f.get_total_kvs();
-        total_bytes += f.get_total_bytes();
-    }
-    assert_eq!(total_kvs, key_count as u64);
-    assert_eq!(total_kvs, admin_total_kvs);
-    assert_eq!(total_bytes, admin_total_bytes);
-    assert_eq!(checksum, admin_checksum);
-
-    suite.stop();
-}
-
-#[test]
 fn test_backup_rawkv() {
     let mut suite = TestSuite::new(3, 144 * 1024 * 1024);
     let key_count = 60;

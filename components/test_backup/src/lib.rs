@@ -19,12 +19,7 @@ use kvproto::kvrpcpb::*;
 use kvproto::tikvpb::TikvClient;
 use rand::Rng;
 use test_raftstore::*;
-use tidb_query_common::storage::scanner::{RangesScanner, RangesScannerOptions};
-use tidb_query_common::storage::{IntervalRange, Range};
-use tikv::coprocessor::checksum_crc64_xor;
-use tikv::coprocessor::dag::TiKVStorage;
 use tikv::storage::kv::Engine;
-use tikv::storage::SnapshotStore;
 use tikv::{config::BackupConfig, storage::kv::SnapContext};
 use tikv_util::config::ReadableSize;
 use tikv_util::time::Instant;
@@ -276,47 +271,6 @@ impl TestSuite {
             end.scheduler().schedule(task).unwrap();
         }
         rx
-    }
-
-    pub fn admin_checksum(
-        &self,
-        backup_ts: TimeStamp,
-        start: String,
-        end: String,
-    ) -> (u64, u64, u64) {
-        let mut checksum = 0;
-        let mut total_kvs = 0;
-        let mut total_bytes = 0;
-        let sim = self.cluster.sim.rl();
-        let engine = sim.storages[&self.context.get_peer().get_store_id()].clone();
-        let snap_ctx = SnapContext {
-            pb_ctx: &self.context,
-            ..Default::default()
-        };
-        let snapshot = engine.snapshot(snap_ctx).unwrap();
-        let snap_store = SnapshotStore::new(
-            snapshot,
-            backup_ts,
-            IsolationLevel::Si,
-            false,
-            Default::default(),
-            Default::default(),
-            false,
-        );
-        let mut scanner = RangesScanner::new(RangesScannerOptions {
-            storage: TiKVStorage::new(snap_store, false),
-            ranges: vec![Range::Interval(IntervalRange::from((start, end)))],
-            scan_backward_in_range: false,
-            is_key_only: false,
-            is_scanned_range_aware: false,
-        });
-        let digest = crc64fast::Digest::new();
-        while let Some((k, v)) = scanner.next().unwrap() {
-            checksum = checksum_crc64_xor(checksum, digest.clone(), &k, &v);
-            total_kvs += 1;
-            total_bytes += (k.len() + v.len()) as u64;
-        }
-        (checksum, total_kvs, total_bytes)
     }
 
     pub fn gen_raw_kv(&self, key_idx: u64) -> (String, String) {

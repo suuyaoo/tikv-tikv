@@ -53,7 +53,6 @@ use tikv_util::sys::SysQuota;
 use tikv_util::time::duration_to_sec;
 use tikv_util::yatp_pool;
 
-use crate::coprocessor_v2::Config as CoprocessorV2Config;
 use crate::import::Config as ImportConfig;
 use crate::server::gc_worker::GcConfig;
 use crate::server::gc_worker::WriteCompactionFilterFactory;
@@ -2502,9 +2501,6 @@ pub struct TiKvConfig {
     #[online_config(submodule)]
     pub coprocessor: CopConfig,
 
-    #[online_config(skip)]
-    pub coprocessor_v2: CoprocessorV2Config,
-
     #[online_config(submodule)]
     pub rocksdb: DbConfig,
 
@@ -2564,7 +2560,6 @@ impl Default for TiKvConfig {
             metric: MetricConfig::default(),
             raft_store: RaftstoreConfig::default(),
             coprocessor: CopConfig::default(),
-            coprocessor_v2: CoprocessorV2Config::default(),
             pd: PdConfig::default(),
             rocksdb: DbConfig::default(),
             raftdb: RaftDbConfig::default(),
@@ -4532,7 +4527,6 @@ mod tests {
         cfg.pd.retry_max_count = default_cfg.pd.retry_max_count; // Both -1 and isize::MAX are the same.
         cfg.storage.block_cache.capacity = None; // Either `None` and a value is computed or `Some(_)` fixed value.
         cfg.memory_usage_limit = None;
-        cfg.coprocessor_v2.coprocessor_plugin_directory = None; // Default is `None`, which is represented by not setting the key.
         cfg.rocksdb.defaultcf.level0_slowdown_writes_trigger = None;
         cfg.rocksdb.defaultcf.level0_stop_writes_trigger = None;
         cfg.rocksdb.defaultcf.soft_pending_compaction_bytes_limit = None;

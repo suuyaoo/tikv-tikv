@@ -25,7 +25,7 @@ use crate::Config;
 use collections::{HashMap, HashSet};
 use concurrency_manager::ConcurrencyManager;
 use encryption_export::DataKeyManager;
-use engine_rocks::{PerfLevel, RocksEngine, RocksSnapshot};
+use engine_rocks::{RocksEngine, RocksSnapshot};
 use engine_traits::{Engines, MiscExt};
 use pd_client::PdClient;
 use raftstore::errors::Error as RaftError;
@@ -46,8 +46,6 @@ use raftstore::{
 };
 use resource_metering::{CollectorRegHandle, ResourceTagFactory};
 use security::SecurityManager;
-use tikv::coprocessor;
-use tikv::coprocessor_v2;
 use tikv::import::{ImportSSTService, SSTImporter};
 use tikv::read_pool::ReadPool;
 use tikv::server::gc_worker::GcWorker;
@@ -395,18 +393,6 @@ impl Simulator for ServerCluster {
         self.snap_mgrs.insert(node_id, snap_mgr.clone());
         let server_cfg = Arc::new(VersionTrack::new(cfg.server.clone()));
         let security_mgr = Arc::new(SecurityManager::new(&cfg.security).unwrap());
-        let cop_read_pool = ReadPool::from(coprocessor::readpool_impl::build_read_pool_for_test(
-            &tikv::config::CoprReadPoolConfig::default_for_test(),
-            store.get_engine(),
-        ));
-        let copr = coprocessor::Endpoint::new(
-            &server_cfg.value().clone(),
-            cop_read_pool.handle(),
-            concurrency_manager.clone(),
-            PerfLevel::EnableCount,
-            res_tag_factory,
-        );
-        let copr_v2 = coprocessor_v2::Endpoint::new(&cfg.coprocessor_v2);
         let mut server = None;
         // Create Debug service.
         let debug_thread_pool = Arc::new(
@@ -448,8 +434,6 @@ impl Simulator for ServerCluster {
                 &server_cfg,
                 &security_mgr,
                 store.clone(),
-                copr.clone(),
-                copr_v2.clone(),
                 sim_router.clone(),
                 resolver.clone(),
                 snap_mgr.clone(),

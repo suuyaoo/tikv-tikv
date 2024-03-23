@@ -51,7 +51,6 @@ slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debu
 # better to not use slog-global, but pass in the logger
 slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "d592f88e4dbba5eb439998463054f1a44fbf17b9" }
 thiserror = "1.0"
-tidb_query_common = { path = "../tidb_query_common", default-features = false }
 tikv = { path = "../../", default-features = false }
 tikv_alloc = { path = "../tikv_alloc" }
 tikv_util = { path = "../tikv_util", default-features = false }

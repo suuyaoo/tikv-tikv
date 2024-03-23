@@ -194,7 +194,6 @@ impl<R: FlowStatsReporter> PoolTicker for ReporterTicker<R> {
 impl<R: FlowStatsReporter> ReporterTicker<R> {
     fn flush_metrics_on_tick(&mut self) {
         crate::storage::metrics::tls_flush(&self.reporter);
-        crate::coprocessor::metrics::tls_flush(&self.reporter);
     }
 }
 

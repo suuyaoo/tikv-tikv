@@ -14,8 +14,6 @@ use kvproto::tikvpb::*;
 use tokio::runtime::{Builder as RuntimeBuilder, Handle as RuntimeHandle, Runtime};
 use tokio_timer::timer::Handle;
 
-use crate::coprocessor::Endpoint;
-use crate::coprocessor_v2;
 use crate::server::gc_worker::GcWorker;
 use crate::server::Proxy;
 use crate::storage::lock_manager::LockManager;
@@ -83,8 +81,6 @@ impl<T: RaftStoreRouter<E::Local> + Unpin, S: StoreAddrResolver + 'static, E: En
         cfg: &Arc<VersionTrack<Config>>,
         security_mgr: &Arc<SecurityManager>,
         storage: Storage<E, L>,
-        copr: Endpoint<E>,
-        copr_v2: coprocessor_v2::Endpoint,
         raft_router: T,
         resolver: S,
         snap_mgr: SnapManager,
@@ -119,8 +115,6 @@ impl<T: RaftStoreRouter<E::Local> + Unpin, S: StoreAddrResolver + 'static, E: En
             store_id,
             storage,
             gc_worker,
-            copr,
-            copr_v2,
             raft_router.clone(),
             lazy_worker.scheduler(),
             check_leader_scheduler,
@@ -405,8 +399,6 @@ mod tests {
 
     use super::super::resolve::{Callback as ResolveCallback, StoreAddrResolver};
     use super::super::{Config, Result};
-    use crate::config::CoprReadPoolConfig;
-    use crate::coprocessor::{self, readpool_impl};
     use crate::server::TestRaftStoreRouter;
     use crate::storage::TestStorageBuilder;
     use grpcio::EnvBuilder;
@@ -415,9 +407,8 @@ mod tests {
     use raftstore::store::*;
 
     use crate::storage::lock_manager::DummyLockManager;
-    use engine_rocks::{PerfLevel, RocksSnapshot};
+    use engine_rocks::{RocksSnapshot};
     use kvproto::raft_serverpb::RaftMessage;
-    use resource_metering::ResourceTagFactory;
     use security::SecurityConfig;
     use tokio::runtime::Builder as TokioBuilder;
 
@@ -493,18 +484,6 @@ mod tests {
         let cfg = Arc::new(VersionTrack::new(cfg));
         let security_mgr = Arc::new(SecurityManager::new(&SecurityConfig::default()).unwrap());
 
-        let cop_read_pool = ReadPool::from(readpool_impl::build_read_pool_for_test(
-            &CoprReadPoolConfig::default_for_test(),
-            storage.get_engine(),
-        ));
-        let copr = coprocessor::Endpoint::new(
-            &cfg.value().clone(),
-            cop_read_pool.handle(),
-            storage.get_concurrency_manager(),
-            PerfLevel::EnableCount,
-            ResourceTagFactory::new_for_test(),
-        );
-        let copr_v2 = coprocessor_v2::Endpoint::new(&coprocessor_v2::Config::default());
         let debug_thread_pool = Arc::new(
             TokioBuilder::new_multi_thread()
                 .thread_name(thd_name!("debugger"))
@@ -520,8 +499,6 @@ mod tests {
             &cfg,
             &security_mgr,
             storage,
-            copr,
-            copr_v2,
             router.clone(),
             MockResolver {
                 quick_fail: Arc::clone(&quick_fail),

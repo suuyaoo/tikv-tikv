@@ -126,16 +126,10 @@ tempfile = "3.0"
 match_template = { path = "components/match_template" }
 paste = "1.0"
 thiserror = "1.0"
-tidb_query_datatype = { path = "components/tidb_query_datatype", default-features = false }
-tidb_query_common = { path = "components/tidb_query_common", default-features = false }
-tidb_query_expr = { path = "components/tidb_query_expr", default-features = false }
-tidb_query_aggr = { path = "components/tidb_query_aggr", default-features = false }
-tidb_query_executors = { path = "components/tidb_query_executors", default-features = false }
 tikv_alloc = { path = "components/tikv_alloc" }
 tikv_kv = { path = "components/tikv_kv", default-features = false }
 tikv_util = { path = "components/tikv_util", default-features = false }
 collections = { path = "components/collections" }
-coprocessor_plugin_api = { path = "components/coprocessor_plugin_api" }
 time = "0.1"
 tipb = { git = "https://github.com/pingcap/tipb.git" }
 tokio = { version = "1.12", features = ["full"] }
@@ -151,7 +145,6 @@ resource_metering = { path = "components/resource_metering" }
 seahash = "4.1.0"
 
 [dev-dependencies]
-example_plugin = { path = "components/test_coprocessor_plugin/example_plugin" } # should be a binary dependency
 panic_hook = { path = "components/panic_hook" }
 reqwest = { version = "0.11", features = ["blocking"] }
 test_sst_importer = { path = "components/test_sst_importer", default-features = false }
@@ -176,8 +169,8 @@ procinfo = { git = "https://github.com/tikv/procinfo-rs", rev = "5125fc1a69496b7
 # When you modify TiKV cooperatively with kvproto, this will be useful to submit the PR to TiKV and the PR to
 # kvproto at the same time.
 # After the PR to kvproto is merged, remember to comment this out and run `cargo update -p kvproto`.
-# [patch.'https://github.com/pingcap/kvproto']
-# kvproto = {git = "https://github.com/your_github_id/kvproto", branch="your_branch"}
+[patch.'https://github.com/pingcap/kvproto']
+kvproto = {git = "https://github.com/suuyaoo/tikv-kvproto", branch="release-5.4"}
 
 [workspace]
 # See https://github.com/rust-lang/rfcs/blob/master/text/2957-cargo-features2.md
@@ -195,7 +188,6 @@ members = [
   "components/test_backup",
   "components/test_raftstore",
   "components/test_storage",
-  "components/test_coprocessor",
   "components/test_sst_importer",
   "components/test_util",
   "components/test_pd",
@@ -204,15 +196,8 @@ members = [
   "components/codec",
   "components/online_config",
   "components/panic_hook",
-  "components/tipb_helper",
   "components/log_wrappers",
   "components/tikv_util",
-  "components/tidb_query_datatype",
-  "components/tidb_query_common",
-  "components/tidb_query_codegen",
-  "components/tidb_query_expr",
-  "components/tidb_query_aggr",
-  "components/tidb_query_executors",
   "components/pd_client",
   "components/external_storage",
   "components/external_storage/export",
@@ -233,8 +218,6 @@ members = [
   "components/server",
   "components/file_system",
   "components/collections",
-  "components/coprocessor_plugin_api",
-  "components/test_coprocessor_plugin/example_plugin",
   "components/resource_metering",
   "components/api_version",
 ]

@@ -66,8 +66,6 @@ use raftstore::{
 use security::SecurityManager;
 use tikv::{
     config::{ConfigController, DBConfigManger, DBType, TiKvConfig, DEFAULT_ROCKSDB_SUB_DIR},
-    coprocessor::{self, MEMTRACE_ROOT as MEMTRACE_COPROCESSOR},
-    coprocessor_v2,
     import::{ImportSSTService, SSTImporter},
     read_pool::{build_yatp_read_pool, ReadPool},
     server::raftkv::ReplicaReadLockChecker,
@@ -699,18 +697,6 @@ impl<ER: RaftEngine> TiKVServer<ER> {
             .encryption_key_manager(self.encryption_key_manager.clone())
             .build(snap_path);
 
-        // Create coprocessor endpoint.
-        let cop_read_pool_handle = if self.config.readpool.coprocessor.use_unified_pool() {
-            unified_read_pool.as_ref().unwrap().handle()
-        } else {
-            let cop_read_pools = ReadPool::from(coprocessor::readpool_impl::build_read_pool(
-                &self.config.readpool.coprocessor,
-                pd_sender,
-                engines.engine.clone(),
-            ));
-            cop_read_pools.handle()
-        };
-
         // Register cdc.
         let cdc_ob = cdc::CdcObserver::new(cdc_scheduler.clone());
         cdc_ob.register_to(self.coprocessor_host.as_mut().unwrap());
@@ -771,14 +757,6 @@ impl<ER: RaftEngine> TiKVServer<ER> {
             &server_config,
             &self.security_mgr,
             storage,
-            coprocessor::Endpoint::new(
-                &server_config.value(),
-                cop_read_pool_handle,
-                self.concurrency_manager.clone(),
-                engine_rocks::raw_util::to_raw_perf_level(self.config.coprocessor.perf_level),
-                resource_tag_factory,
-            ),
-            coprocessor_v2::Endpoint::new(&self.config.coprocessor_v2),
             self.router.clone(),
             self.resolver.clone(),
             snap_mgr.clone(),
@@ -1114,7 +1092,6 @@ impl<ER: RaftEngine> TiKVServer<ER> {
 
         let mut mem_trace_metrics = MemoryTraceManager::default();
         mem_trace_metrics.register_provider(MEMTRACE_RAFTSTORE.clone());
-        mem_trace_metrics.register_provider(MEMTRACE_COPROCESSOR.clone());
         self.background_worker
             .spawn_interval_task(DEFAULT_MEMTRACE_FLUSH_INTERVAL, move || {
                 let now = Instant::now();

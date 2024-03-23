@@ -12,7 +12,6 @@ use grpcio_health::*;
 use tempfile::Builder;
 
 use kvproto::{
-    coprocessor::*,
     debugpb,
     kvrpcpb::{self, *},
     metapb, raft_serverpb,
@@ -29,7 +28,6 @@ use raftstore::coprocessor::CoprocessorHost;
 use raftstore::store::{fsm::store::StoreMeta, AutoSplitController, SnapManager};
 use resource_metering::CollectorRegHandle;
 use test_raftstore::*;
-use tikv::coprocessor::REQ_TYPE_DAG;
 use tikv::import::Config as ImportConfig;
 use tikv::import::SSTImporter;
 use tikv::server;
@@ -586,15 +584,6 @@ fn test_mvcc_resolve_lock_gc_and_delete() {
 }
 
 // raft related RPC is tested as parts of test_snapshot.rs, so skip here.
-
-#[test]
-fn test_coprocessor() {
-    let (_cluster, client, _) = must_new_cluster_and_kv_client();
-    // SQL push down commands
-    let mut req = Request::default();
-    req.set_tp(REQ_TYPE_DAG);
-    client.coprocessor(&req).unwrap();
-}
 
 #[test]
 fn test_split_region() {
@@ -1596,11 +1585,6 @@ fn test_tikv_forwarding() {
         raw_delete_range,
         RawDeleteRangeRequest
     );
-    test_func!(client, ctx, call_opt, coprocessor, {
-        let mut req = Request::default();
-        req.set_tp(REQ_TYPE_DAG);
-        req
-    });
     test_func!(client, ctx, call_opt, split_region, {
         let mut req = SplitRegionRequest::default();
         req.set_split_key(b"k1".to_vec());

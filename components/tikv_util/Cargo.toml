@@ -18,6 +18,7 @@ codec = { path = "../codec", default-features = false }
 online_config = { path = "../online_config" }
 chrono = "0.4"
 crc32fast = "1.2"
+crc64fast = "0.1"
 crossbeam = "0.8"
 error_code = { path = "../error_code", default-features = false }
 derive_more = "0.99.3"

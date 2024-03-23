@@ -23,7 +23,6 @@ kvproto = { git = "https://github.com/pingcap/kvproto.git" }
 rand = "0.8"
 tempfile = "3.0"
 test_raftstore = { path = "../test_raftstore" }
-tidb_query_common = { path = "../tidb_query_common" }
 tikv = { path = "../../", default-features = false }
 tikv_util = { path = "../tikv_util", default-features = false }
 txn_types = { path = "../txn_types", default-features = false }

@@ -89,6 +89,17 @@ pub fn panic_mark_file_exists<P: AsRef<Path>>(data_dir: P) -> bool {
     file_exists(path)
 }
 
+pub fn checksum_crc64_xor(
+    checksum: u64,
+    mut digest: crc64fast::Digest,
+    k_suffix: &[u8],
+    v: &[u8],
+) -> u64 {
+    digest.write(k_suffix);
+    digest.write(v);
+    checksum ^ digest.sum64()
+}
+
 pub const NO_LIMIT: u64 = u64::MAX;
 
 pub trait AssertClone: Clone {}

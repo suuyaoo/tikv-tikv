@@ -14,11 +14,11 @@ use file_system::Sha256Reader;
 use futures_util::io::AllowStdIo;
 use kvproto::brpb::{CipherInfo, File};
 use kvproto::metapb::Region;
-use tikv::coprocessor::checksum_crc64_xor;
 use tikv::storage::txn::TxnEntry;
 use tikv_util::{
     self, box_err, error,
     time::{Instant, Limiter},
+    checksum_crc64_xor,
 };
 use txn_types::KvPair;
 
