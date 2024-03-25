@@ -11,7 +11,7 @@ default = []
 backup = { path = "../backup" }
 collections = { path = "../collections" }
 concurrency_manager = { path = "../concurrency_manager" }
-crc64fast = "0.1"
+crc64fast = "1.0"
 engine_traits = { path = "../engine_traits" }
 external_storage_export = { path = "../external_storage/export", default-features = false }
 file_system = { path = "../file_system", default-features = false }

@@ -57,7 +57,7 @@ codec = { path = "components/codec", default-features = false }
 concurrency_manager = { path = "components/concurrency_manager", default-features = false }
 online_config = { path = "components/online_config" }
 crc32fast = "1.4"
-crc64fast = "0.1"
+crc64fast = "1.0"
 crossbeam = "0.8"
 engine_panic = { path = "components/engine_panic", default-features = false }
 engine_rocks = { path = "components/engine_rocks", default-features = false }
