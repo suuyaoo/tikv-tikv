@@ -156,8 +156,8 @@ hyper-openssl = "0.9"
 # TODO: remove this when new raft-rs is published.
 raft = { git = "https://github.com/tikv/raft-rs", branch = "master" }
 raft-proto = { git = "https://github.com/tikv/raft-rs", branch = "master" }
-protobuf = { git = "https://github.com/pingcap/rust-protobuf", branch = "v2.8" }
-protobuf-codegen = { git = "https://github.com/pingcap/rust-protobuf", branch = "v2.8" }
+protobuf = { git = "https://github.com/suuyaoo/rust-protobuf", branch = "tikv-5.4" }
+protobuf-codegen = { git = "https://github.com/suuyaoo/rust-protobuf", branch = "tikv-5.4" }
 
 # remove this when https://github.com/danburkert/fs2-rs/pull/42 is merged.
 fs2 = { git = "https://github.com/tabokie/fs2-rs", branch = "tikv" }
