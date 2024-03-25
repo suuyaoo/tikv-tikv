@@ -62,7 +62,6 @@
 //!
 //! - [`WriteBatch`] - types that can commit multiple key/value pairs in batches.
 //!   A `WriteBatchExt::WriteBtach` commits all pairs in one atomic transaction.
-//!   A `WriteBatchExt::WriteBatchVec` does not (FIXME: is this correct?).
 //!
 //! The `KvEngine` instance generally acts as a factory for types that implement
 //! other traits in the crate. These factory methods, associated types, and

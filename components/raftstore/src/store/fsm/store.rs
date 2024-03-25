@@ -1408,32 +1408,17 @@ impl<EK: KvEngine, ER: RaftEngine> RaftBatchSystem<EK, ER> {
             io_reschedule_concurrent_count: Arc::new(AtomicUsize::new(0)),
         };
         let region_peers = builder.init()?;
-        let engine = builder.engines.kv.clone();
-        if engine.support_write_batch_vec() {
-            self.start_system::<T, C, <EK as WriteBatchExt>::WriteBatchVec>(
-                workers,
-                region_peers,
-                builder,
-                auto_split_controller,
-                concurrency_manager,
-                mgr,
-                pd_client,
-                collector_reg_handle,
-                health_service,
-            )?;
-        } else {
-            self.start_system::<T, C, <EK as WriteBatchExt>::WriteBatch>(
-                workers,
-                region_peers,
-                builder,
-                auto_split_controller,
-                concurrency_manager,
-                mgr,
-                pd_client,
-                collector_reg_handle,
-                health_service,
-            )?;
-        }
+        self.start_system::<T, C, <EK as WriteBatchExt>::WriteBatch>(
+            workers,
+            region_peers,
+            builder,
+            auto_split_controller,
+            concurrency_manager,
+            mgr,
+            pd_client,
+            collector_reg_handle,
+            health_service,
+        )?;
         Ok(())
     }
 
