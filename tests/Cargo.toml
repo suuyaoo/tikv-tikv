@@ -129,7 +129,3 @@ tokio = { version = "1.5", features = ["rt-multi-thread"] }
 concurrency_manager = { path = "../components/concurrency_manager", default-features = false }
 file_system = { path = "../components/file_system" }
 resource_metering = { path = "../components/resource_metering" }
-
-[target.'cfg(all(target_os = "linux", target_arch = "x86_64"))'.dev-dependencies]
-criterion-perf-events = "0.1"
-perfcnt = "0.7"
