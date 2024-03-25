@@ -4376,7 +4376,6 @@ dependencies = [
  "tokio-timer",
  "toml",
  "url",
- "utime",
  "yatp",
 ]
 
@@ -4619,17 +4618,6 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
-]
-
-[[package]]
-name = "utime"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "055058552ca15c566082fc61da433ae678f78986a6f16957e33162d1b218792a"
-dependencies = [
- "kernel32-sys",
- "libc",
- "winapi 0.2.8",
 ]
 
 [[package]]
