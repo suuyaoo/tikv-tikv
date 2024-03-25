@@ -15,10 +15,6 @@ use tikv_util::keybuilder::KeyBuilder;
 pub const MAX_DELETE_COUNT_BY_KEY: usize = 2048;
 
 impl RocksEngine {
-    fn is_titan(&self) -> bool {
-        self.as_inner().is_titan()
-    }
-
     // We store all data which would be deleted in memory at first because the data of region will never be larger than
     // max-region-size.
     fn delete_all_in_range_cf_by_ingest(
@@ -44,16 +40,11 @@ impl RocksEngine {
             }
             last_end_key = Some(r.end_key.to_owned());
 
-            let mut opts = IterOptions::new(
+            let opts = IterOptions::new(
                 Some(KeyBuilder::from_slice(r.start_key, 0, 0)),
                 Some(KeyBuilder::from_slice(r.end_key, 0, 0)),
                 false,
             );
-            if self.is_titan() {
-                // Cause DeleteFilesInRange may expose old blob index keys, setting key only for
-                // Titan to avoid referring to missing blob files.
-                opts.set_key_only(true);
-            }
             let mut it = self.iterator_cf_opt(cf, opts)?;
             let mut it_valid = it.seek(r.start_key.into())?;
             while it_valid {
@@ -100,12 +91,7 @@ impl RocksEngine {
     fn delete_all_in_range_cf_by_key(&self, cf: &str, range: &Range<'_>) -> Result<()> {
         let start = KeyBuilder::from_slice(range.start_key, 0, 0);
         let end = KeyBuilder::from_slice(range.end_key, 0, 0);
-        let mut opts = IterOptions::new(Some(start), Some(end), false);
-        if self.is_titan() {
-            // Cause DeleteFilesInRange may expose old blob index keys, setting key only for Titan
-            // to avoid referring to missing blob files.
-            opts.set_key_only(true);
-        }
+        let opts = IterOptions::new(Some(start), Some(end), false);
         let mut it = self.iterator_cf_opt(cf, opts)?;
         let mut it_valid = it.seek(range.start_key.into())?;
         let mut wb = self.write_batch();
@@ -157,22 +143,6 @@ impl MiscExt for RocksEngine {
                         r.end_key,
                         false,
                     )?;
-                }
-            }
-            DeleteStrategy::DeleteBlobs => {
-                let handle = util::get_cf_handle(self.as_inner(), cf)?;
-                if self.is_titan() {
-                    for r in ranges {
-                        if r.start_key >= r.end_key {
-                            continue;
-                        }
-                        self.as_inner().delete_blob_files_in_range_cf(
-                            handle,
-                            r.start_key,
-                            r.end_key,
-                            false,
-                        )?;
-                    }
                 }
             }
             DeleteStrategy::DeleteByRange => {
@@ -549,8 +519,6 @@ mod tests {
         check_data(&db, ALL_CFS, kvs.as_slice());
 
         db.delete_all_in_range(DeleteStrategy::DeleteFiles, &[Range::new(b"k2", b"k4")])
-            .unwrap();
-        db.delete_all_in_range(DeleteStrategy::DeleteBlobs, &[Range::new(b"k2", b"k4")])
             .unwrap();
         check_data(&db, ALL_CFS, kvs_left.as_slice());
     }

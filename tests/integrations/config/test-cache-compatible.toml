@@ -22,12 +22,8 @@
 
 [rocksdb]
 
-[rocksdb.titan]
-
 [rocksdb.defaultcf]
 block-cache-size = "1GB"
-
-[rocksdb.defaultcf.titan]
 
 [rocksdb.writecf]
 block-cache-size = "1GB"

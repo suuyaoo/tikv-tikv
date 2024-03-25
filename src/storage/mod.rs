@@ -2838,7 +2838,6 @@ mod tests {
         *,
     };
 
-    use crate::config::TitanDBConfig;
     use crate::storage::kv::{ExpectedWrite, MockEngineBuilder};
     use crate::storage::lock_manager::DiagnosticContext;
     use crate::storage::mvcc::LockType;
@@ -3368,10 +3367,6 @@ mod tests {
     #[test]
     fn test_scan_with_key_only() {
         let db_config = crate::config::DbConfig {
-            titan: TitanDBConfig {
-                enabled: true,
-                ..Default::default()
-            },
             ..Default::default()
         };
         let engine = {

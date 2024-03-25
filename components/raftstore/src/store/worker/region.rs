@@ -450,11 +450,6 @@ where
                 error!("failed to delete files in range"; "err" => %e);
             });
         self.delete_all_in_range(ranges)?;
-        self.engine
-            .delete_all_in_range(DeleteStrategy::DeleteBlobs, ranges)
-            .unwrap_or_else(|e| {
-                error!("failed to delete files in range"; "err" => %e);
-            });
         Ok(())
     }
 

@@ -1,7 +1,7 @@
 // Copyright 2019 TiKV Project Authors. Licensed under Apache-2.0.
 
 use crate::Result;
-use crate::{db_options::TitanDBOptions, sst_partitioner::SstPartitionerFactory};
+use crate::{sst_partitioner::SstPartitionerFactory};
 
 /// Trait for engines with column family options
 pub trait CFOptionsExt {
@@ -12,8 +12,6 @@ pub trait CFOptionsExt {
 }
 
 pub trait ColumnFamilyOptions {
-    type TitanDBOptions: TitanDBOptions;
-
     fn new() -> Self;
     fn get_max_write_buffer_number(&self) -> u32;
     fn get_level_zero_slowdown_writes_trigger(&self) -> u32;
@@ -23,7 +21,6 @@ pub trait ColumnFamilyOptions {
     fn get_hard_pending_compaction_bytes_limit(&self) -> u64;
     fn get_block_cache_capacity(&self) -> u64;
     fn set_block_cache_capacity(&self, capacity: u64) -> std::result::Result<(), String>;
-    fn set_titandb_options(&mut self, opts: &Self::TitanDBOptions);
     fn get_target_file_size_base(&self) -> u64;
     fn set_disable_auto_compactions(&mut self, v: bool);
     fn get_disable_auto_compactions(&self) -> bool;

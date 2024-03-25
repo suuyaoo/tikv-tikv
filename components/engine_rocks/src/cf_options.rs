@@ -2,7 +2,7 @@
 
 use crate::engine::RocksEngine;
 use crate::util;
-use crate::{db_options::RocksTitanDBOptions, sst_partitioner::RocksSstPartitionerFactory};
+use crate::{sst_partitioner::RocksSstPartitionerFactory};
 use engine_traits::{CFOptionsExt, Result};
 use engine_traits::{ColumnFamilyOptions, SstPartitionerFactory};
 use rocksdb::ColumnFamilyOptions as RawCFOptions;
@@ -44,8 +44,6 @@ impl RocksColumnFamilyOptions {
 }
 
 impl ColumnFamilyOptions for RocksColumnFamilyOptions {
-    type TitanDBOptions = RocksTitanDBOptions;
-
     fn new() -> Self {
         RocksColumnFamilyOptions::from_raw(RawCFOptions::new())
     }
@@ -80,10 +78,6 @@ impl ColumnFamilyOptions for RocksColumnFamilyOptions {
 
     fn set_block_cache_capacity(&self, capacity: u64) -> std::result::Result<(), String> {
         self.0.set_block_cache_capacity(capacity)
-    }
-
-    fn set_titandb_options(&mut self, opts: &Self::TitanDBOptions) {
-        self.0.set_titandb_options(opts.as_raw())
     }
 
     fn get_target_file_size_base(&self) -> u64 {

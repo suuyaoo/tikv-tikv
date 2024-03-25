@@ -78,9 +78,6 @@ impl<'a, S: Snapshot> RawStore<S> {
         }
         match self {
             RawStore::V1(inner) => {
-                if key_only {
-                    option.set_key_only(key_only);
-                }
                 inner
                     .forward_raw_scan(cf, start_key, limit, statistics, option, key_only)
                     .await
@@ -113,9 +110,6 @@ impl<'a, S: Snapshot> RawStore<S> {
         }
         match self {
             RawStore::V1(inner) => {
-                if key_only {
-                    option.set_key_only(key_only);
-                }
                 inner
                     .reverse_raw_scan(cf, start_key, limit, statistics, option, key_only)
                     .await

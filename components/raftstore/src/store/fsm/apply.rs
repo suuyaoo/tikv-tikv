@@ -1650,9 +1650,6 @@ where
             engine
                 .delete_ranges_cf(cf, strategy.clone(), &range)
                 .unwrap_or_else(move |e| fail_f(e, strategy));
-            engine
-                .delete_ranges_cf(cf, DeleteStrategy::DeleteBlobs, &range)
-                .unwrap_or_else(move |e| fail_f(e, DeleteStrategy::DeleteBlobs));
         }
 
         // TODO: Should this be executed when `notify_only` is set?

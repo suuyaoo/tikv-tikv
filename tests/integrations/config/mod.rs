@@ -9,7 +9,7 @@ use slog::Level;
 
 use batch_system::Config as BatchSystemConfig;
 use collections::{HashMap, HashSet};
-use engine_rocks::config::{BlobRunMode, CompressionType, LogLevel};
+use engine_rocks::config::{LogLevel};
 use engine_rocks::raw::{
     CompactionPriority, DBCompactionStyle, DBCompressionType, DBRateLimiterMode, DBRecoveryMode,
 };
@@ -230,28 +230,6 @@ fn test_serde_custom_tikv_config() {
         unreachable_backoff: ReadableDuration::secs(111),
     };
     value.pd = PdConfig::new(vec!["example.com:443".to_owned()]);
-    let titan_cf_config = TitanCfConfig {
-        min_blob_size: ReadableSize(2018),
-        blob_file_compression: CompressionType::Zstd,
-        blob_cache_size: ReadableSize::gb(12),
-        min_gc_batch_size: ReadableSize::kb(12),
-        max_gc_batch_size: ReadableSize::mb(12),
-        discardable_ratio: 0.00156,
-        sample_ratio: 0.982,
-        merge_small_file_threshold: ReadableSize::kb(21),
-        blob_run_mode: BlobRunMode::Fallback,
-        level_merge: true,
-        range_merge: true,
-        max_sorted_runs: 100,
-        gc_merge_rewrite: true,
-    };
-    let titan_db_config = TitanDBConfig {
-        enabled: true,
-        dirname: "bar".to_owned(),
-        disable_gc: false,
-        max_background_gc: 9,
-        purge_obsolete_files_period: ReadableDuration::secs(1),
-    };
     value.rocksdb = DbConfig {
         wal_recovery_mode: DBRecoveryMode::AbsoluteConsistency,
         wal_dir: "/var".to_owned(),
@@ -324,7 +302,6 @@ fn test_serde_custom_tikv_config() {
             soft_pending_compaction_bytes_limit: Some(ReadableSize::gb(12)),
             hard_pending_compaction_bytes_limit: Some(ReadableSize::gb(12)),
             force_consistency_checks: true,
-            titan: titan_cf_config.clone(),
             prop_size_index_distance: 4000000,
             prop_keys_index_distance: 40000,
             enable_doubly_skiplist: false,
@@ -375,21 +352,6 @@ fn test_serde_custom_tikv_config() {
             soft_pending_compaction_bytes_limit: Some(ReadableSize::gb(12)),
             hard_pending_compaction_bytes_limit: Some(ReadableSize::gb(12)),
             force_consistency_checks: true,
-            titan: TitanCfConfig {
-                min_blob_size: ReadableSize(1024), // default value
-                blob_file_compression: CompressionType::Lz4,
-                blob_cache_size: ReadableSize::mb(0),
-                min_gc_batch_size: ReadableSize::mb(16),
-                max_gc_batch_size: ReadableSize::mb(64),
-                discardable_ratio: 0.5,
-                sample_ratio: 0.1,
-                merge_small_file_threshold: ReadableSize::mb(8),
-                blob_run_mode: BlobRunMode::ReadOnly,
-                level_merge: false,
-                range_merge: true,
-                max_sorted_runs: 20,
-                gc_merge_rewrite: false,
-            },
             prop_size_index_distance: 4000000,
             prop_keys_index_distance: 40000,
             enable_doubly_skiplist: true,
@@ -440,21 +402,6 @@ fn test_serde_custom_tikv_config() {
             soft_pending_compaction_bytes_limit: Some(ReadableSize::gb(12)),
             hard_pending_compaction_bytes_limit: Some(ReadableSize::gb(12)),
             force_consistency_checks: true,
-            titan: TitanCfConfig {
-                min_blob_size: ReadableSize(1024), // default value
-                blob_file_compression: CompressionType::Lz4,
-                blob_cache_size: ReadableSize::mb(0),
-                min_gc_batch_size: ReadableSize::mb(16),
-                max_gc_batch_size: ReadableSize::mb(64),
-                discardable_ratio: 0.5,
-                sample_ratio: 0.1,
-                merge_small_file_threshold: ReadableSize::mb(8),
-                blob_run_mode: BlobRunMode::ReadOnly, // default value
-                level_merge: false,
-                range_merge: true,
-                max_sorted_runs: 20,
-                gc_merge_rewrite: false,
-            },
             prop_size_index_distance: 4000000,
             prop_keys_index_distance: 40000,
             enable_doubly_skiplist: true,
@@ -505,21 +452,6 @@ fn test_serde_custom_tikv_config() {
             soft_pending_compaction_bytes_limit: Some(ReadableSize::gb(12)),
             hard_pending_compaction_bytes_limit: Some(ReadableSize::gb(12)),
             force_consistency_checks: true,
-            titan: TitanCfConfig {
-                min_blob_size: ReadableSize(1024), // default value
-                blob_file_compression: CompressionType::Lz4,
-                blob_cache_size: ReadableSize::mb(0),
-                min_gc_batch_size: ReadableSize::mb(16),
-                max_gc_batch_size: ReadableSize::mb(64),
-                discardable_ratio: 0.5,
-                sample_ratio: 0.1,
-                merge_small_file_threshold: ReadableSize::mb(8),
-                blob_run_mode: BlobRunMode::ReadOnly, // default value
-                level_merge: false,
-                range_merge: true,
-                max_sorted_runs: 20,
-                gc_merge_rewrite: false,
-            },
             prop_size_index_distance: 4000000,
             prop_keys_index_distance: 40000,
             enable_doubly_skiplist: true,
@@ -530,7 +462,6 @@ fn test_serde_custom_tikv_config() {
             bottommost_zstd_compression_dict_size: 0,
             bottommost_zstd_compression_sample_size: 0,
         },
-        titan: titan_db_config.clone(),
     };
     value.raftdb = RaftDbConfig {
         info_log_level: LogLevel::Info,
@@ -599,7 +530,6 @@ fn test_serde_custom_tikv_config() {
             soft_pending_compaction_bytes_limit: Some(ReadableSize::gb(12)),
             hard_pending_compaction_bytes_limit: Some(ReadableSize::gb(12)),
             force_consistency_checks: true,
-            titan: titan_cf_config,
             prop_size_index_distance: 4000000,
             prop_keys_index_distance: 40000,
             enable_doubly_skiplist: true,
@@ -610,7 +540,6 @@ fn test_serde_custom_tikv_config() {
             bottommost_zstd_compression_dict_size: 0,
             bottommost_zstd_compression_sample_size: 0,
         },
-        titan: titan_db_config,
     };
     value.raft_engine.enable = true;
     let raft_engine_config = value.raft_engine.mut_config();

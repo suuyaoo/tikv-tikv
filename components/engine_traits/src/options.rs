@@ -85,8 +85,6 @@ pub struct IterOptions {
     hint_min_ts: Option<u64>,
     // hint for we will only scan data with commit ts <= hint_max_ts
     hint_max_ts: Option<u64>,
-    // only supported when Titan enabled, otherwise it doesn't take effect.
-    key_only: bool,
     seek_mode: SeekMode,
     // A threshold for the number of keys that can be skipped before failing an
     // iterator seek as incomplete. The default value of 0 should be used to
@@ -108,7 +106,6 @@ impl IterOptions {
             fill_cache,
             hint_min_ts: None,
             hint_max_ts: None,
-            key_only: false,
             seek_mode: SeekMode::TotalOrder,
             max_skippable_internal_keys: 0,
         }
@@ -165,16 +162,6 @@ impl IterOptions {
             Bound::Excluded(ts) => self.hint_max_ts = Some(ts - 1),
             Bound::Unbounded => self.hint_max_ts = None,
         }
-    }
-
-    #[inline]
-    pub fn key_only(&self) -> bool {
-        self.key_only
-    }
-
-    #[inline]
-    pub fn set_key_only(&mut self, v: bool) {
-        self.key_only = v;
     }
 
     #[inline]
@@ -256,7 +243,6 @@ impl Default for IterOptions {
             fill_cache: true,
             hint_min_ts: None,
             hint_max_ts: None,
-            key_only: false,
             seek_mode: SeekMode::TotalOrder,
             max_skippable_internal_keys: 0,
         }

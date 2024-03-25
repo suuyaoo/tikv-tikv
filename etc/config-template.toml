@@ -590,17 +590,6 @@
 ## RocksDB log levels
 # info-log-level = "info"
 
-## Options for `Titan`.
-[rocksdb.titan]
-## Enables or disables `Titan`. Note that Titan is still an experimental feature. Once
-## enabled, it can't fall back. Forced fallback may result in data loss.
-## default: false
-# enabled = false
-
-## Maximum number of threads of `Titan` background gc jobs.
-## default: 4
-# max-background-gc = 4
-
 ## Options for "Default" Column Family, which stores actual user data.
 [rocksdb.defaultcf]
 ## Compression method (if any) is used to compress a block.
@@ -761,60 +750,6 @@
 ## being too large when compaction guard is enabled. This config overrides target-file-size-base
 ## for the same CF.
 # compaction-guard-max-output-file-size = "128M"
-
-## Options for "Default" Column Family for `Titan`.
-[rocksdb.defaultcf.titan]
-## The smallest value to store in blob files. Value smaller than
-## this threshold will be inlined in base DB.
-## default: 1KB
-# min-blob-size = "1KB"
-
-## The compression algorithm used to compress data in blob files.
-## Compression method.
-##   no:     kNoCompression
-##   snappy: kSnappyCompression
-##   zlib:   kZlibCompression
-##   bzip2:  kBZip2Compression
-##   lz4:    kLZ4Compression
-##   lz4hc:  kLZ4HCCompression
-##   zstd:   kZSTD
-## default: lz4
-# blob-file-compression = "lz4"
-
-## Specifics cache size for blob records
-## default: 0
-# blob-cache-size = "0GB"
-
-## If the ratio of discardable size of a blob file is larger than
-## this threshold, the blob file will be GCed out.
-## default: 0.5
-# discardable-ratio = 0.5
-
-## The mode used to process blob files. In read-only mode Titan
-## stops writing value into blob log. In fallback mode Titan
-## converts blob index into real value on flush and compaction.
-## This option is especially useful for downgrading Titan.
-##   default:   kNormal
-##   read-only: kReadOnly
-##   fallback:  kFallback
-## default: normal
-# blob-run-mode = "normal"
-
-## If set true, values in blob file will be merged to a new blob file while
-## their corresponding keys are compacted to last two level in LSM-Tree.
-##
-## With this feature enabled, Titan could get better scan performance, and
-## better write performance during GC, but will suffer around 1.1 space
-## amplification and 3 more write amplification if no GC needed (eg. uniformly
-## distributed keys) under default rocksdb setting.
-##
-## Requirement: level_compaction_dynamic_level_base = true
-## default: false
-# level-merge = false
-
-## Use merge operator to rewrite GC blob index.
-## default: false
-# gc-merge-rewrite = false
 
 ## Options for "Write" Column Family, which stores MVCC commit information
 [rocksdb.writecf]

@@ -7,7 +7,6 @@ use std::thread;
 use std::time::Duration;
 
 use crate::Config;
-use engine_rocks::config::BlobRunMode;
 use engine_rocks::raw::DB;
 use engine_rocks::{
     get_env, CompactionListener, Compat, RocksCompactionJobInfo, RocksEngine, RocksSnapshot,
@@ -738,22 +737,6 @@ pub fn configure_for_lease_read<T: Simulator>(
     cluster.cfg.raft_store.max_leader_missing_duration = ReadableDuration(election_timeout * 5);
 
     election_timeout
-}
-
-pub fn configure_for_enable_titan<T: Simulator>(
-    cluster: &mut Cluster<T>,
-    min_blob_size: ReadableSize,
-) {
-    cluster.cfg.rocksdb.titan.enabled = true;
-    cluster.cfg.rocksdb.titan.purge_obsolete_files_period = ReadableDuration::secs(1);
-    cluster.cfg.rocksdb.titan.max_background_gc = 10;
-    cluster.cfg.rocksdb.defaultcf.titan.min_blob_size = min_blob_size;
-    cluster.cfg.rocksdb.defaultcf.titan.blob_run_mode = BlobRunMode::Normal;
-    cluster.cfg.rocksdb.defaultcf.titan.min_gc_batch_size = ReadableSize::kb(0);
-}
-
-pub fn configure_for_disable_titan<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.cfg.rocksdb.titan.enabled = false;
 }
 
 /// Keep putting random kvs until specified size limit is reached.

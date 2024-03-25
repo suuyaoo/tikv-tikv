@@ -472,17 +472,6 @@ where
                     warn!("unsafe destroy range failed at delete_all_in_range_cf"; "err" => ?e);
                     e
                 })?;
-            local_storage
-                .delete_ranges_cf(
-                    cf,
-                    DeleteStrategy::DeleteBlobs,
-                    &[Range::new(&start_data_key, &end_data_key)],
-                )
-                .map_err(|e| {
-                    let e: Error = box_err!(e);
-                    warn!("unsafe destroy range failed at delete_blob_files_in_range"; "err" => ?e);
-                    e
-                })?;
         }
 
         info!(

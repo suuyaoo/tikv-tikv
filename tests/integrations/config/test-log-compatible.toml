@@ -27,11 +27,7 @@ log-rotation-size = "1024MB"
 
 [rocksdb]
 
-[rocksdb.titan]
-
 [rocksdb.defaultcf]
-
-[rocksdb.defaultcf.titan]
 
 [rocksdb.writecf]
 

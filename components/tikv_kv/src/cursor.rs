@@ -432,7 +432,6 @@ pub struct CursorBuilder<'a, S: Snapshot> {
     hint_min_ts: Option<TimeStamp>,
     // hint for we will only scan data with commit ts <= hint_max_ts
     hint_max_ts: Option<TimeStamp>,
-    key_only: bool,
     max_skippable_internal_keys: u64,
 }
 
@@ -450,7 +449,6 @@ impl<'a, S: 'a + Snapshot> CursorBuilder<'a, S> {
             lower_bound: None,
             hint_min_ts: None,
             hint_max_ts: None,
-            key_only: false,
             max_skippable_internal_keys: 0,
         }
     }
@@ -512,12 +510,6 @@ impl<'a, S: 'a + Snapshot> CursorBuilder<'a, S> {
     }
 
     #[inline]
-    pub fn key_only(mut self, key_only: bool) -> Self {
-        self.key_only = key_only;
-        self
-    }
-
-    #[inline]
     pub fn max_skippable_internal_keys(mut self, count: u64) -> Self {
         self.max_skippable_internal_keys = count;
         self
@@ -544,7 +536,6 @@ impl<'a, S: 'a + Snapshot> CursorBuilder<'a, S> {
         if let Some(ts) = self.hint_max_ts {
             iter_opt.set_hint_max_ts(Bound::Included(ts.into_inner()));
         }
-        iter_opt.set_key_only(self.key_only);
         iter_opt.set_max_skippable_internal_keys(self.max_skippable_internal_keys);
 
         // prefix_seek is only used for single key, so set prefix_same_as_start for safety.
