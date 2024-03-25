@@ -650,7 +650,7 @@ impl<E: Engine, L: LockManager> Storage<E, L> {
 
         // The resource tags of these batched requests are not the same, and it is quite expensive
         // to distinguish them, so we can find random one of them as a representative.
-        let rand_index = rand::thread_rng().gen_range(0, requests.len());
+        let rand_index = rand::thread_rng().gen_range(0..requests.len());
         let resource_tag = self
             .resource_tag_factory
             .new_tag(requests[rand_index].get_context());
@@ -1411,7 +1411,7 @@ impl<E: Engine, L: LockManager> Storage<E, L> {
 
         // The resource tags of these batched requests are not the same, and it is quite expensive
         // to distinguish them, so we can find random one of them as a representative.
-        let rand_index = rand::thread_rng().gen_range(0, gets.len());
+        let rand_index = rand::thread_rng().gen_range(0..gets.len());
         let resource_tag = self
             .resource_tag_factory
             .new_tag(gets[rand_index].get_context());

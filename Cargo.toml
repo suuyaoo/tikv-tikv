@@ -103,7 +103,7 @@ protobuf = { version = "2.8", features = ["bytes"] }
 raft = { version = "0.6.0-alpha", default-features = false, features = ["protobuf-codec"] }
 raftstore = { path = "components/raftstore", default-features = false }
 raft_log_engine = { path = "components/raft_log_engine", default-features = false }
-rand = "0.7.3"
+rand = "0.8"
 regex = "1.3"
 num-traits = "0.2.14"
 rev_lines = "0.2.1"
@@ -149,7 +149,7 @@ reqwest = { version = "0.11", features = ["blocking"] }
 test_sst_importer = { path = "components/test_sst_importer", default-features = false }
 test_util = { path = "components/test_util", default-features = false }
 tokio = { version = "1.5", features = ["macros", "rt-multi-thread", "time"] }
-zipf = "6.1.0"
+zipf = "7.0"
 hyper-openssl = "0.9"
 
 [patch.crates-io]
