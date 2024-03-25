@@ -644,9 +644,9 @@ dependencies = [
  "cfg-if 1.0.0",
  "crossbeam-channel",
  "crossbeam-deque",
- "crossbeam-epoch 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "crossbeam-epoch",
  "crossbeam-queue",
- "crossbeam-utils 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "crossbeam-utils 0.8.10",
 ]
 
 [[package]]
@@ -656,7 +656,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06ed27e177f16d65f0f0c22a213e17c696ace5dd64b14258b52f9417ccb52db4"
 dependencies = [
  "cfg-if 1.0.0",
- "crossbeam-utils 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "crossbeam-utils 0.8.10",
 ]
 
 [[package]]
@@ -666,32 +666,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6455c0ca19f0d2fbf751b908d5c55c1f5cbc65e03c4225427254b46890bdde1e"
 dependencies = [
  "cfg-if 1.0.0",
- "crossbeam-epoch 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "crossbeam-utils 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "crossbeam-epoch",
+ "crossbeam-utils 0.8.10",
 ]
 
 [[package]]
 name = "crossbeam-epoch"
-version = "0.9.3"
+version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2584f639eb95fea8c798496315b297cf81b9b58b6d30ab066a75455333cf4b12"
+checksum = "045ebe27666471bb549370b4b0b3e51b07f56325befa4284db65fc89c02511b1"
 dependencies = [
+ "autocfg",
  "cfg-if 1.0.0",
- "crossbeam-utils 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static",
+ "crossbeam-utils 0.8.10",
  "memoffset",
- "scopeguard",
-]
-
-[[package]]
-name = "crossbeam-epoch"
-version = "0.9.3"
-source = "git+https://github.com/tikv/crossbeam.git?branch=tikv-5.0#e0e083d062649484188b7337fe388fd12f2c8d94"
-dependencies = [
- "cfg-if 1.0.0",
- "crossbeam-utils 0.8.3 (git+https://github.com/tikv/crossbeam.git?branch=tikv-5.0)",
- "lazy_static",
- "memoffset",
+ "once_cell",
  "scopeguard",
 ]
 
@@ -702,17 +691,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f6cb3c7f5b8e51bc3ebb73a2327ad4abdbd119dc13223f14f961d2f38486756"
 dependencies = [
  "cfg-if 1.0.0",
- "crossbeam-utils 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "crossbeam-utils 0.8.10",
 ]
 
 [[package]]
 name = "crossbeam-skiplist"
-version = "0.0.0"
-source = "git+https://github.com/tikv/crossbeam.git?branch=tikv-5.0#e0e083d062649484188b7337fe388fd12f2c8d94"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "883a5821d7d079fcf34ac55f27a833ee61678110f6b97637cc74513c0d0b42fc"
 dependencies = [
  "cfg-if 1.0.0",
- "crossbeam-epoch 0.9.3 (git+https://github.com/tikv/crossbeam.git?branch=tikv-5.0)",
- "crossbeam-utils 0.8.3 (git+https://github.com/tikv/crossbeam.git?branch=tikv-5.0)",
+ "crossbeam-epoch",
+ "crossbeam-utils 0.8.10",
  "scopeguard",
 ]
 
@@ -729,23 +719,12 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-utils"
-version = "0.8.3"
+version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7e9d99fa91428effe99c5c6d4634cdeba32b8cf784fc428a2a687f61a952c49"
+checksum = "7d82ee10ce34d7bc12c2122495e7593a9c41347ecdd64185af4ecf72cb1a7f83"
 dependencies = [
- "autocfg",
  "cfg-if 1.0.0",
- "lazy_static",
-]
-
-[[package]]
-name = "crossbeam-utils"
-version = "0.8.3"
-source = "git+https://github.com/tikv/crossbeam.git?branch=tikv-5.0#e0e083d062649484188b7337fe388fd12f2c8d94"
-dependencies = [
- "autocfg",
- "cfg-if 1.0.0",
- "lazy_static",
+ "once_cell",
 ]
 
 [[package]]
@@ -1074,7 +1053,7 @@ dependencies = [
  "bcc",
  "collections",
  "crc32fast",
- "crossbeam-utils 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "crossbeam-utils 0.8.10",
  "fs2",
  "lazy_static",
  "libc",
@@ -2864,7 +2843,7 @@ checksum = "9ab346ac5921dc62ffa9f89b7a773907511cdfa5490c572ae9be1be33e8afa4a"
 dependencies = [
  "crossbeam-channel",
  "crossbeam-deque",
- "crossbeam-utils 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "crossbeam-utils 0.8.10",
  "lazy_static",
  "num_cpus",
 ]
