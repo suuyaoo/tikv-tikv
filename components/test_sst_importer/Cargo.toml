@@ -9,7 +9,7 @@ description = "test helpers for sst_importer"
 test = false
 
 [dependencies]
-crc32fast = "1.2"
+crc32fast = "1.4"
 engine_rocks = { path = "../engine_rocks", default-features = false }
 engine_traits = { path = "../engine_traits", default-features = false }
 keys = { path = "../keys", default-features = false }

@@ -9,7 +9,7 @@ bcc-iosnoop = ["bcc"]
 
 [dependencies]
 collections = { path = "../collections" }
-crc32fast = "1.2"
+crc32fast = "1.4"
 crossbeam-utils = "0.8.0"
 fs2 = "0.4"
 lazy_static = "1.3"
