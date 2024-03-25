@@ -209,8 +209,6 @@ macro_rules! cf_config {
             #[online_config(skip)]
             pub prop_keys_index_distance: u64,
             #[online_config(skip)]
-            pub enable_doubly_skiplist: bool,
-            #[online_config(skip)]
             pub enable_compaction_guard: bool,
             #[online_config(skip)]
             pub compaction_guard_min_output_file_size: ReadableSize,
@@ -344,9 +342,6 @@ macro_rules! write_into_metrics {
         $metrics
             .with_label_values(&[$tag, "force_consistency_checks"])
             .set(($cf.force_consistency_checks as i32).into());
-        $metrics
-            .with_label_values(&[$tag, "enable_doubly_skiplist"])
-            .set(($cf.enable_doubly_skiplist as i32).into());
     }};
 }
 
@@ -420,9 +415,6 @@ macro_rules! build_cf_opt {
         );
         cf_opts.set_optimize_filters_for_hits($opt.optimize_filters_for_hits);
         cf_opts.set_force_consistency_checks($opt.force_consistency_checks);
-        if $opt.enable_doubly_skiplist {
-            cf_opts.set_doubly_skiplist();
-        }
         if $opt.enable_compaction_guard {
             if let Some(provider) = $region_info_provider {
                 let factory = CompactionGuardGeneratorFactory::new(
@@ -489,7 +481,6 @@ impl Default for DefaultCfConfig {
             force_consistency_checks: false,
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
-            enable_doubly_skiplist: true,
             enable_compaction_guard: true,
             compaction_guard_min_output_file_size: ReadableSize::mb(8),
             compaction_guard_max_output_file_size: ReadableSize::mb(128),
@@ -585,7 +576,6 @@ impl Default for WriteCfConfig {
             force_consistency_checks: false,
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
-            enable_doubly_skiplist: true,
             enable_compaction_guard: true,
             compaction_guard_min_output_file_size: ReadableSize::mb(8),
             compaction_guard_max_output_file_size: ReadableSize::mb(128),
@@ -670,7 +660,6 @@ impl Default for LockCfConfig {
             force_consistency_checks: false,
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
-            enable_doubly_skiplist: true,
             enable_compaction_guard: false,
             compaction_guard_min_output_file_size: ReadableSize::mb(8),
             compaction_guard_max_output_file_size: ReadableSize::mb(128),
@@ -737,7 +726,6 @@ impl Default for RaftCfConfig {
             force_consistency_checks: false,
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
-            enable_doubly_skiplist: true,
             enable_compaction_guard: false,
             compaction_guard_min_output_file_size: ReadableSize::mb(8),
             compaction_guard_max_output_file_size: ReadableSize::mb(128),
@@ -1042,7 +1030,6 @@ impl Default for RaftDefaultCfConfig {
             force_consistency_checks: false,
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
-            enable_doubly_skiplist: true,
             enable_compaction_guard: false,
             compaction_guard_min_output_file_size: ReadableSize::mb(8),
             compaction_guard_max_output_file_size: ReadableSize::mb(128),
