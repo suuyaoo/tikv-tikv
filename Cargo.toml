@@ -130,7 +130,6 @@ tikv_kv = { path = "components/tikv_kv", default-features = false }
 tikv_util = { path = "components/tikv_util", default-features = false }
 collections = { path = "components/collections" }
 time = "0.1"
-tipb = { git = "https://github.com/pingcap/tipb.git" }
 tokio = { version = "1.12", features = ["full"] }
 tokio-timer = { git = "https://github.com/tikv/tokio", branch = "tokio-timer-hotfix" }
 tokio-openssl = "0.6"
