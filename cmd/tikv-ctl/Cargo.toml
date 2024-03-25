@@ -34,7 +34,6 @@ tempfile = "3.0"
 clap = "2.32"
 structopt = "0.3"
 concurrency_manager = { path = "../../components/concurrency_manager", default-features = false }
-encryption_export = { path = "../../components/encryption/export", default-features = false }
 engine_rocks = { path = "../../components/engine_rocks", default-features = false }
 engine_traits = { path = "../../components/engine_traits", default-features = false }
 error_code = { path = "../../components/error_code", default-features = false }

@@ -120,9 +120,6 @@ pub enum Error {
     #[error("SstImporter {0}")]
     SstImporter(#[from] sst_importer::Error),
 
-    #[error("Encryption {0}")]
-    Encryption(#[from] encryption::Error),
-
     #[error("Deadline is exceeded")]
     DeadlineExceeded,
 }
@@ -282,7 +279,6 @@ impl ErrorCodeExt for Error {
             Error::Transport(_) => error_code::raftstore::TRANSPORT,
             Error::Snapshot(e) => e.error_code(),
             Error::SstImporter(e) => e.error_code(),
-            Error::Encryption(e) => e.error_code(),
             Error::DataIsNotReady { .. } => error_code::raftstore::DATA_IS_NOT_READY,
             Error::DeadlineExceeded => error_code::raftstore::DEADLINE_EXCEEDED,
 

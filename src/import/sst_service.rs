@@ -15,7 +15,6 @@ use futures::TryFutureExt;
 use grpcio::{
     ClientStreamingSink, RequestStream, RpcContext, ServerStreamingSink, UnarySink, WriteFlags,
 };
-use kvproto::encryptionpb::EncryptionMethod;
 use kvproto::{errorpb, kvrpcpb::Context};
 
 use kvproto::import_sstpb::RawWriteRequest_oneof_chunk as RawChunk;
@@ -397,18 +396,11 @@ where
             // a download task.
             // Unfortunately, this currently can't happen because the S3Storage
             // is not Send + Sync. See the documentation of S3Storage for reason.
-            let cipher = req
-                .cipher_info
-                .to_owned()
-                .into_option()
-                .filter(|c| c.cipher_type != EncryptionMethod::Plaintext);
-
             let res = importer.download::<E>(
                 req.get_sst(),
                 req.get_storage_backend(),
                 req.get_name(),
                 req.get_rewrite_rule(),
-                cipher,
                 limiter,
                 engine,
             );

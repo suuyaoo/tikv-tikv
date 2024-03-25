@@ -192,10 +192,6 @@ pub mod ctor {
                 encryption: CryptoOptions::None,
             }
         }
-
-        pub fn with_default_ctr_encrypted_env(&mut self, ciphertext: Vec<u8>) {
-            self.encryption = CryptoOptions::DefaultCtrEncryptedEnv(ciphertext);
-        }
     }
 
     impl Default for DBOptions {
@@ -334,7 +330,7 @@ pub mod ctor {
 
     mod rocks {
         use super::{
-            CFOptions, ColumnFamilyOptions, CryptoOptions, DBOptions, EngineConstructorExt,
+            CFOptions, ColumnFamilyOptions, DBOptions, EngineConstructorExt,
         };
 
         use engine_traits::{ColumnFamilyOptions as ColumnFamilyOptionsTrait, Result};
@@ -343,12 +339,11 @@ pub mod ctor {
             MvccPropertiesCollectorFactory, RangePropertiesCollectorFactory,
         };
         use engine_rocks::raw::ColumnFamilyOptions as RawRocksColumnFamilyOptions;
-        use engine_rocks::raw::{DBOptions as RawRocksDBOptions, Env};
+        use engine_rocks::raw::{DBOptions as RawRocksDBOptions};
         use engine_rocks::util::{
             new_engine as rocks_new_engine, new_engine_opt as rocks_new_engine_opt, RocksCFOptions,
         };
         use engine_rocks::{RocksColumnFamilyOptions, RocksDBOptions};
-        use std::sync::Arc;
 
         impl EngineConstructorExt for engine_rocks::RocksEngine {
             // FIXME this is duplicating behavior from engine_rocks::raw_util in order to
@@ -439,15 +434,8 @@ pub mod ctor {
             }
         }
 
-        fn get_rocks_db_opts(db_opts: DBOptions) -> Result<RocksDBOptions> {
-            let mut rocks_db_opts = RawRocksDBOptions::new();
-            match db_opts.encryption {
-                CryptoOptions::None => (),
-                CryptoOptions::DefaultCtrEncryptedEnv(ciphertext) => {
-                    let env = Arc::new(Env::new_default_ctr_encrypted_env(&ciphertext)?);
-                    rocks_db_opts.set_env(env);
-                }
-            }
+        fn get_rocks_db_opts(_db_opts: DBOptions) -> Result<RocksDBOptions> {
+            let rocks_db_opts = RawRocksDBOptions::new();
             let rocks_db_opts = RocksDBOptions::from_raw(rocks_db_opts);
             Ok(rocks_db_opts)
         }

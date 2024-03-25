@@ -526,11 +526,6 @@ pub enum Cmd {
         /// output file path
         out_file: String,
     },
-    /// Dump encryption metadata
-    EncryptionMeta {
-        #[structopt(subcommand)]
-        cmd: EncryptionMetaCmd,
-    },
     /// Print bad ssts related infos
     BadSsts {
         #[structopt(long)]
@@ -614,22 +609,6 @@ pub enum FailCmd {
     },
     /// List all fail points
     List {},
-}
-
-#[derive(StructOpt)]
-pub enum EncryptionMetaCmd {
-    /// Dump data keys
-    DumpKey {
-        #[structopt(long, use_delimiter = true)]
-        /// List of data key ids. Dump all keys if not provided.
-        ids: Option<Vec<u64>>,
-    },
-    /// Dump file encryption info
-    DumpFile {
-        #[structopt(long)]
-        /// Path to the file. Dump for all files if not provided.
-        path: Option<String>,
-    },
 }
 
 #[derive(StructOpt)]

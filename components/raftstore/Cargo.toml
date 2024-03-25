@@ -27,7 +27,6 @@ online_config = { path = "../online_config" }
 crc32fast = "1.2"
 crossbeam = "0.8"
 derivative = "2"
-encryption = { path = "../encryption", default-features = false }
 engine_traits = { path = "../engine_traits", default-features = false }
 error_code = { path = "../error_code", default-features = false }
 fail = "0.5"
@@ -78,7 +77,6 @@ yatp = { git = "https://github.com/tikv/yatp.git", branch = "master" }
 engine_test = { path = "../engine_test", default-features = false }
 
 [dev-dependencies]
-encryption_export = { path = "../encryption/export", default-features = false }
 engine_rocks = { path = "../engine_rocks", default-features = false }
 panic_hook = { path = "../panic_hook" }
 test_sst_importer = { path = "../test_sst_importer", default-features = false }

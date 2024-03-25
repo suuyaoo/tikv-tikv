@@ -27,13 +27,11 @@ use std::{
 
 use cdc::{CdcConfigManager, MemoryQuota};
 use concurrency_manager::ConcurrencyManager;
-use encryption_export::{data_key_manager_from_config, DataKeyManager};
 use engine_rocks::{from_rocks_compression_type, get_env, FlowInfo, RocksEngine};
 use engine_traits::{
     compaction_job::CompactionJobInfo, CFOptionsExt, ColumnFamilyOptions, Engines,
     FlowControlFactorsExt, KvEngine, MiscExt, RaftEngine, CF_DEFAULT, CF_LOCK, CF_WRITE,
 };
-use error_code::ErrorCodeExt;
 use file_system::{
     get_io_rate_limiter, set_io_rate_limiter, BytesFetcher, File, IOBudgetAdjustor,
     MetricsManager as IOMetricsManager,
@@ -133,7 +131,6 @@ pub fn run_tikv(config: TiKvConfig) {
             tikv.check_conflict_addr();
             tikv.init_fs();
             tikv.init_yatp();
-            tikv.init_encryption();
             let fetcher = tikv.init_io_utility();
             let listener = tikv.init_flow_receiver();
             let (engines, engines_info) = tikv.init_raw_engines(listener);
@@ -178,7 +175,6 @@ struct TiKVServer<ER: RaftEngine> {
     state: Arc<Mutex<GlobalReplicationState>>,
     store_path: PathBuf,
     snap_mgr: Option<SnapManager>, // Will be filled in `init_servers`.
-    encryption_key_manager: Option<Arc<DataKeyManager>>,
     engines: Option<TiKVEngines<RocksEngine, ER>>,
     servers: Option<Servers<RocksEngine, ER>>,
     region_info_accessor: RegionInfoAccessor,
@@ -266,7 +262,6 @@ impl<ER: RaftEngine> TiKVServer<ER> {
             state,
             store_path,
             snap_mgr: None,
-            encryption_key_manager: None,
             engines: None,
             servers: None,
             region_info_accessor,
@@ -452,22 +447,6 @@ impl<ER: RaftEngine> TiKVServer<ER> {
         yatp::metrics::set_namespace(Some("tikv"));
         prometheus::register(Box::new(yatp::metrics::MULTILEVEL_LEVEL0_CHANCE.clone())).unwrap();
         prometheus::register(Box::new(yatp::metrics::MULTILEVEL_LEVEL_ELAPSED.clone())).unwrap();
-    }
-
-    fn init_encryption(&mut self) {
-        self.encryption_key_manager = data_key_manager_from_config(
-            &self.config.security.encryption,
-            &self.config.storage.data_dir,
-        )
-        .map_err(|e| {
-            panic!(
-                "Encryption failed to initialize: {}. code: {}",
-                e,
-                e.error_code()
-            )
-        })
-        .unwrap()
-        .map(Arc::new);
     }
 
     fn create_raftstore_compaction_listener(&self) -> engine_rocks::CompactionListener {
@@ -694,7 +673,6 @@ impl<ER: RaftEngine> TiKVServer<ER> {
         let snap_mgr = SnapManagerBuilder::default()
             .max_write_bytes_per_sec(bps)
             .max_total_size(self.config.server.snap_max_total_size.0)
-            .encryption_key_manager(self.encryption_key_manager.clone())
             .build(snap_path);
 
         // Register cdc.
@@ -780,7 +758,6 @@ impl<ER: RaftEngine> TiKVServer<ER> {
         let mut importer = SSTImporter::new(
             &self.config.import,
             import_path,
-            self.encryption_key_manager.clone(),
             self.config.storage.api_version(),
         )
         .unwrap();
@@ -1239,7 +1216,7 @@ impl TiKVServer<RocksEngine> {
         &mut self,
         flow_listener: engine_rocks::FlowListener,
     ) -> (Engines<RocksEngine, RocksEngine>, Arc<EnginesResourceInfo>) {
-        let env = get_env(self.encryption_key_manager.clone(), get_io_rate_limiter()).unwrap();
+        let env = get_env(get_io_rate_limiter()).unwrap();
         let block_cache = self.config.storage.block_cache.build_shared_cache();
 
         // Create raft engine.
@@ -1282,7 +1259,6 @@ impl TiKVServer<RocksEngine> {
 
         check_and_dump_raft_engine(
             &self.config,
-            self.encryption_key_manager.clone(),
             get_io_rate_limiter(),
             &engines.raft,
             8,
@@ -1324,14 +1300,13 @@ impl TiKVServer<RaftLogEngine> {
         Engines<RocksEngine, RaftLogEngine>,
         Arc<EnginesResourceInfo>,
     ) {
-        let env = get_env(self.encryption_key_manager.clone(), get_io_rate_limiter()).unwrap();
+        let env = get_env(get_io_rate_limiter()).unwrap();
         let block_cache = self.config.storage.block_cache.build_shared_cache();
 
         // Create raft engine.
         let raft_config = self.config.raft_engine.config();
         let raft_engine = RaftLogEngine::new(
             raft_config,
-            self.encryption_key_manager.clone(),
             get_io_rate_limiter(),
         )
         .unwrap_or_else(|e| fatal!("failed to create raft engine: {}", e));

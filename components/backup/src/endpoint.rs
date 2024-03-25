@@ -15,7 +15,6 @@ use external_storage::BackendConfig;
 use external_storage_export::{create_storage, ExternalStorage};
 use futures::channel::mpsc::*;
 use kvproto::brpb::*;
-use kvproto::encryptionpb::EncryptionMethod;
 use kvproto::kvrpcpb::{ApiVersion, Context, IsolationLevel};
 use kvproto::metapb::*;
 use online_config::OnlineConfig;
@@ -58,7 +57,6 @@ struct Request {
     cf: CfName,
     compression_type: CompressionType,
     compression_level: i32,
-    cipher: CipherInfo,
 }
 
 /// Backup Task.
@@ -122,11 +120,6 @@ impl Task {
                 cf,
                 compression_type: req.get_compression_type(),
                 compression_level: req.get_compression_level(),
-                cipher: req.cipher_info.unwrap_or_else(|| {
-                    let mut cipher = CipherInfo::default();
-                    cipher.set_cipher_type(EncryptionMethod::Plaintext);
-                    cipher
-                }),
             },
             resp,
         };
@@ -489,7 +482,6 @@ impl BackupRange {
         cf: CfNameWrap,
         compression_type: Option<SstCompressionType>,
         compression_level: i32,
-        cipher: CipherInfo,
         saver_tx: async_channel::Sender<InMemBackupFiles>,
     ) -> Result<Statistics> {
         let mut writer = match BackupRawKVWriter::new(
@@ -499,7 +491,6 @@ impl BackupRange {
             storage.limiter.clone(),
             compression_type,
             compression_level,
-            cipher,
         ) {
             Ok(w) => w,
             Err(e) => {
@@ -862,7 +853,6 @@ impl<E: Engine, R: RegionInfoProvider + Clone + 'static> Endpoint<E, R> {
                                 cf.into(),
                                 ct,
                                 request.compression_level,
-                                request.cipher.clone(),
                                 saver_tx.clone(),
                             )
                             .await
@@ -875,7 +865,6 @@ impl<E: Engine, R: RegionInfoProvider + Clone + 'static> Endpoint<E, R> {
                             ct,
                             request.compression_level,
                             sst_max_size,
-                            request.cipher.clone(),
                         );
                         brange
                             .backup(
@@ -1352,7 +1341,6 @@ pub mod tests {
                         cf: engine_traits::CF_DEFAULT,
                         compression_type: CompressionType::Unknown,
                         compression_level: 0,
-                        cipher: CipherInfo::default(),
                     },
                     resp: tx,
                 };

@@ -3,24 +3,17 @@
 //! To use External storage with protobufs as an application, import this module.
 //! external_storage contains the actual library code
 //! Cloud provider backends are under components/cloud
-use std::io::{self, Write};
+use std::io::{self};
 use std::path::Path;
-use std::sync::Arc;
-
-use engine_traits::FileEncryptionInfo;
 
 pub use kvproto::brpb::StorageBackend_oneof_backend as Backend;
 
-use async_trait::async_trait;
-use encryption::DataKeyManager;
-use external_storage::{encrypt_wrap_reader, record_storage_create, BackendConfig};
+use external_storage::{record_storage_create, BackendConfig};
 pub use external_storage::{
     read_external_storage_into_file, ExternalStorage, LocalStorage, NoopStorage, UnpinReader,
 };
-use futures_io::AsyncRead;
 use kvproto::brpb::{Noop, StorageBackend};
-use tikv_util::stream::block_on_external_io;
-use tikv_util::time::{Instant, Limiter};
+use tikv_util::time::Instant;
 
 pub fn create_storage(
     storage_backend: &StorageBackend,
@@ -116,47 +109,3 @@ mod tests {
         assert!(create_storage(&backend, Default::default()).is_err());
     }
 }
-
-pub struct EncryptedExternalStorage {
-    pub key_manager: Arc<DataKeyManager>,
-    pub storage: Box<dyn ExternalStorage>,
-}
-
-#[async_trait]
-impl ExternalStorage for EncryptedExternalStorage {
-    fn name(&self) -> &'static str {
-        self.storage.name()
-    }
-    fn url(&self) -> io::Result<url::Url> {
-        self.storage.url()
-    }
-    async fn write(&self, name: &str, reader: UnpinReader, content_length: u64) -> io::Result<()> {
-        self.storage.write(name, reader, content_length).await
-    }
-    fn read(&self, name: &str) -> Box<dyn AsyncRead + Unpin + '_> {
-        self.storage.read(name)
-    }
-    fn restore(
-        &self,
-        storage_name: &str,
-        restore_name: std::path::PathBuf,
-        expected_length: u64,
-        speed_limiter: &Limiter,
-        file_crypter: Option<FileEncryptionInfo>,
-    ) -> io::Result<()> {
-        let reader = self.read(storage_name);
-        let file_writer: &mut dyn Write =
-            &mut self.key_manager.create_file_for_write(&restore_name)?;
-        let min_read_speed: usize = 8192;
-        let mut input = encrypt_wrap_reader(file_crypter, reader)?;
-
-        block_on_external_io(read_external_storage_into_file(
-            &mut input,
-            file_writer,
-            speed_limiter,
-            expected_length,
-            min_read_speed,
-        ))
-    }
-}
-

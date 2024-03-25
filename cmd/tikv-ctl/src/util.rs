@@ -18,22 +18,6 @@ pub fn init_ctl_logger(level: &str) {
     initial_logger(&cfg);
 }
 
-pub fn warning_prompt(message: &str) -> bool {
-    const EXPECTED: &str = "I consent";
-    println!("{}", message);
-    let input: String = promptly::prompt(format!(
-        "Type \"{}\" to continue, anything else to exit",
-        EXPECTED
-    ))
-    .unwrap();
-    if input == EXPECTED {
-        true
-    } else {
-        println!("exit.");
-        false
-    }
-}
-
 pub fn from_hex(key: &str) -> Result<Vec<u8>, hex::FromHexError> {
     if key.starts_with("0x") || key.starts_with("0X") {
         return hex::decode(&key[2..]);

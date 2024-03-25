@@ -4,12 +4,10 @@ use std::collections::HashMap;
 use std::fmt;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use api_version::api_v2::TIDB_RANGES_COMPLEMENT;
-use encryption::{DataKeyManager, EncrypterWriter};
 use engine_rocks::{get_env, RocksSstReader};
-use engine_traits::{EncryptionKeyManager, Iterable, KvEngine, SSTMetaInfo, SstReader};
+use engine_traits::{Iterable, KvEngine, SSTMetaInfo, SstReader};
 use file_system::{get_io_rate_limiter, sync_dir, File, OpenOptions};
 use kvproto::import_sstpb::*;
 use kvproto::kvrpcpb::ApiVersion;
@@ -31,12 +29,6 @@ impl SyncableWrite for File {
     }
 }
 
-impl SyncableWrite for EncrypterWriter<File> {
-    fn sync(&self) -> io::Result<()> {
-        self.sync_all()
-    }
-}
-
 #[derive(Clone)]
 pub struct ImportPath {
     // The path of the file that has been uploaded.
@@ -49,20 +41,8 @@ pub struct ImportPath {
 
 impl ImportPath {
     // move file from temp to save.
-    pub fn save(mut self, key_manager: Option<&DataKeyManager>) -> Result<()> {
+    pub fn save(mut self) -> Result<()> {
         file_system::rename(&self.temp, &self.save)?;
-        if let Some(key_manager) = key_manager {
-            let temp_str = self
-                .temp
-                .to_str()
-                .ok_or_else(|| Error::InvalidSSTPath(self.temp.clone()))?;
-            let save_str = self
-                .save
-                .to_str()
-                .ok_or_else(|| Error::InvalidSSTPath(self.save.clone()))?;
-            key_manager.link_file(temp_str, save_str)?;
-            key_manager.delete_file(temp_str)?;
-        }
         // sync the directory after rename
         self.save.pop();
         sync_dir(&self.save)?;
@@ -86,25 +66,14 @@ pub struct ImportFile {
     path: ImportPath,
     file: Option<Box<dyn SyncableWrite>>,
     digest: crc32fast::Hasher,
-    key_manager: Option<Arc<DataKeyManager>>,
 }
 
 impl ImportFile {
     pub fn create(
         meta: SstMeta,
         path: ImportPath,
-        key_manager: Option<Arc<DataKeyManager>>,
     ) -> Result<ImportFile> {
-        let file: Box<dyn SyncableWrite> = if let Some(ref manager) = key_manager {
-            // key manager will truncate existed file, so we should check exist manually.
-            if path.temp.exists() {
-                return Err(Error::Io(io::Error::new(
-                    io::ErrorKind::AlreadyExists,
-                    format!("file already exists, {}", path.temp.to_str().unwrap()),
-                )));
-            }
-            Box::new(manager.create_file_for_write(&path.temp)?)
-        } else {
+        let file: Box<dyn SyncableWrite> = {
             Box::new(
                 OpenOptions::new()
                     .write(true)
@@ -117,7 +86,6 @@ impl ImportFile {
             path,
             file: Some(file),
             digest: crc32fast::Hasher::new(),
-            key_manager,
         })
     }
 
@@ -138,21 +106,12 @@ impl ImportFile {
             ));
         }
         file_system::rename(&self.path.temp, &self.path.save)?;
-        if let Some(ref manager) = self.key_manager {
-            let tmp_str = self.path.temp.to_str().unwrap();
-            let save_str = self.path.save.to_str().unwrap();
-            manager.link_file(tmp_str, save_str)?;
-            manager.delete_file(self.path.temp.to_str().unwrap())?;
-        }
         Ok(())
     }
 
     fn cleanup(&mut self) -> Result<()> {
         self.file.take();
         if self.path.temp.exists() {
-            if let Some(ref manager) = self.key_manager {
-                manager.delete_file(self.path.temp.to_str().unwrap())?;
-            }
             file_system::remove_file(&self.path.temp)?;
         }
         Ok(())
@@ -236,31 +195,27 @@ impl ImportDir {
     pub fn create(
         &self,
         meta: &SstMeta,
-        key_manager: Option<Arc<DataKeyManager>>,
     ) -> Result<ImportFile> {
         let path = self.join(meta)?;
         if path.save.exists() {
             return Err(Error::FileExists(path.save, "create SST upload cache"));
         }
-        ImportFile::create(meta.clone(), path, key_manager)
+        ImportFile::create(meta.clone(), path)
     }
 
-    pub fn delete_file(&self, path: &Path, key_manager: Option<&DataKeyManager>) -> Result<()> {
+    pub fn delete_file(&self, path: &Path) -> Result<()> {
         if path.exists() {
             file_system::remove_file(&path)?;
-            if let Some(manager) = key_manager {
-                manager.delete_file(path.to_str().unwrap())?;
-            }
         }
 
         Ok(())
     }
 
-    pub fn delete(&self, meta: &SstMeta, manager: Option<&DataKeyManager>) -> Result<ImportPath> {
+    pub fn delete(&self, meta: &SstMeta) -> Result<ImportPath> {
         let path = self.join(meta)?;
-        self.delete_file(&path.save, manager)?;
-        self.delete_file(&path.temp, manager)?;
-        self.delete_file(&path.clone, manager)?;
+        self.delete_file(&path.save)?;
+        self.delete_file(&path.temp)?;
+        self.delete_file(&path.clone)?;
         Ok(path)
     }
 
@@ -272,11 +227,10 @@ impl ImportDir {
     pub fn validate(
         &self,
         meta: &SstMeta,
-        key_manager: Option<Arc<DataKeyManager>>,
     ) -> Result<SSTMetaInfo> {
         let path = self.join(meta)?;
         let path_str = path.save.to_str().unwrap();
-        let env = get_env(key_manager, get_io_rate_limiter())?;
+        let env = get_env(get_io_rate_limiter())?;
         let sst_reader = RocksSstReader::open_with_env(path_str, Some(env))?;
         // TODO: check the length and crc32 of ingested file.
         let meta_info = sst_reader.sst_meta_info(meta.to_owned());
@@ -287,7 +241,6 @@ impl ImportDir {
     pub fn check_api_version(
         &self,
         metas: &[SstMeta],
-        key_manager: Option<Arc<DataKeyManager>>,
         api_version: ApiVersion,
     ) -> Result<bool> {
         for meta in metas {
@@ -302,7 +255,7 @@ impl ImportDir {
                 _ => {
                     let path = self.join(meta)?;
                     let path_str = path.save.to_str().unwrap();
-                    let env = get_env(key_manager.clone(), get_io_rate_limiter())?;
+                    let env = get_env(get_io_rate_limiter())?;
                     let sst_reader = RocksSstReader::open_with_env(path_str, Some(env))?;
 
                     for &(start, end) in TIDB_RANGES_COMPLEMENT {
@@ -333,7 +286,6 @@ impl ImportDir {
         &self,
         metas: &[SSTMetaInfo],
         engine: &E,
-        key_manager: Option<Arc<DataKeyManager>>,
         api_version: ApiVersion,
     ) -> Result<()> {
         let start = Instant::now();
@@ -343,7 +295,7 @@ impl ImportDir {
             .map(|info| info.meta.clone())
             .collect::<Vec<_>>();
         if !self
-            .check_api_version(&meta_vec, key_manager.clone(), api_version)
+            .check_api_version(&meta_vec, api_version)
             .unwrap()
         {
             panic!("cannot ingest because of imcompatible api version");
@@ -354,7 +306,7 @@ impl ImportDir {
         for info in metas {
             let path = self.join(&info.meta)?;
             let cf = info.meta.get_cf_name();
-            super::prepare_sst_for_ingestion(&path.save, &path.clone, key_manager.as_deref())?;
+            super::prepare_sst_for_ingestion(&path.save, &path.clone)?;
             ingest_bytes += info.total_bytes;
             paths.entry(cf).or_insert_with(Vec::new).push(path);
         }
@@ -374,12 +326,11 @@ impl ImportDir {
     pub fn verify_checksum(
         &self,
         metas: &[SstMeta],
-        key_manager: Option<Arc<DataKeyManager>>,
     ) -> Result<()> {
         for meta in metas {
             let path = self.join(meta)?;
             let path_str = path.save.to_str().unwrap();
-            let env = get_env(key_manager.clone(), get_io_rate_limiter())?;
+            let env = get_env(get_io_rate_limiter())?;
             let sst_reader = RocksSstReader::open_with_env(path_str, Some(env))?;
             sst_reader.verify_checksum()?;
         }

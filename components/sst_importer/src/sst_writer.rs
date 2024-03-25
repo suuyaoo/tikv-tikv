@@ -6,9 +6,7 @@ use api_version::RawValue;
 use engine_traits::raw_ttl::ttl_to_expire_ts;
 use kvproto::import_sstpb::*;
 use kvproto::kvrpcpb::ApiVersion;
-use std::sync::Arc;
 
-use encryption::DataKeyManager;
 use engine_traits::{KvEngine, SstWriter};
 use tikv_util::time::Instant;
 use txn_types::{is_short_value, Key, TimeStamp, Write as KvWrite, WriteType};
@@ -28,7 +26,6 @@ pub struct TxnSSTWriter<E: KvEngine> {
     write_bytes: u64,
     write_path: ImportPath,
     write_meta: SstMeta,
-    key_manager: Option<Arc<DataKeyManager>>,
 }
 
 impl<E: KvEngine> TxnSSTWriter<E> {
@@ -39,7 +36,6 @@ impl<E: KvEngine> TxnSSTWriter<E> {
         write_path: ImportPath,
         default_meta: SstMeta,
         write_meta: SstMeta,
-        key_manager: Option<Arc<DataKeyManager>>,
     ) -> Self {
         TxnSSTWriter {
             default,
@@ -52,7 +48,6 @@ impl<E: KvEngine> TxnSSTWriter<E> {
             write_entries: 0,
             write_bytes: 0,
             write_meta,
-            key_manager,
         }
     }
 
@@ -98,16 +93,16 @@ impl<E: KvEngine> TxnSSTWriter<E> {
         let (default_entries, write_entries) = (self.default_entries, self.write_entries);
         let (default_bytes, write_bytes) = (self.default_bytes, self.write_bytes);
         let (p1, p2) = (self.default_path.clone(), self.write_path.clone());
-        let (w1, w2, key_manager) = (self.default, self.write, self.key_manager);
+        let (w1, w2) = (self.default, self.write);
 
         if default_entries > 0 {
             w1.finish()?;
-            p1.save(key_manager.as_deref())?;
+            p1.save()?;
             metas.push(default_meta);
         }
         if write_entries > 0 {
             w2.finish()?;
-            p2.save(key_manager.as_deref())?;
+            p2.save()?;
             metas.push(write_meta);
         }
 
@@ -141,7 +136,6 @@ pub struct RawSSTWriter<E: KvEngine> {
     default_bytes: u64,
     default_path: ImportPath,
     default_meta: SstMeta,
-    key_manager: Option<Arc<DataKeyManager>>,
     api_version: ApiVersion,
 }
 
@@ -150,7 +144,6 @@ impl<E: KvEngine> RawSSTWriter<E> {
         default: E::SstWriter,
         default_path: ImportPath,
         default_meta: SstMeta,
-        key_manager: Option<Arc<DataKeyManager>>,
         api_version: ApiVersion,
     ) -> Self {
         RawSSTWriter {
@@ -160,7 +153,6 @@ impl<E: KvEngine> RawSSTWriter<E> {
             default_bytes: 0,
             default_deletes: 0,
             default_meta,
-            key_manager,
             api_version,
         }
     }
@@ -227,7 +219,7 @@ impl<E: KvEngine> RawSSTWriter<E> {
         }
 
         self.default.finish()?;
-        self.default_path.save(self.key_manager.as_deref())?;
+        self.default_path.save()?;
 
         info!(
             "finish raw write to sst";
@@ -265,7 +257,7 @@ mod tests {
 
         let importer_dir = tempfile::tempdir().unwrap();
         let cfg = Config::default();
-        let importer = SSTImporter::new(&cfg, &importer_dir, None, ApiVersion::V1).unwrap();
+        let importer = SSTImporter::new(&cfg, &importer_dir, ApiVersion::V1).unwrap();
         let db_path = importer_dir.path().join("db");
         let db = new_test_engine(db_path.to_str().unwrap(), DATA_CFS);
 
@@ -315,7 +307,7 @@ mod tests {
 
         let importer_dir = tempfile::tempdir().unwrap();
         let cfg = Config::default();
-        let importer = SSTImporter::new(&cfg, &importer_dir, None, api_version).unwrap();
+        let importer = SSTImporter::new(&cfg, &importer_dir, api_version).unwrap();
         let db_path = importer_dir.path().join("db");
         let db = new_test_engine(db_path.to_str().unwrap(), DATA_CFS);
 
@@ -370,7 +362,7 @@ mod tests {
 
         let importer_dir = tempfile::tempdir().unwrap();
         let cfg = Config::default();
-        let importer = SSTImporter::new(&cfg, &importer_dir, None, ApiVersion::V1).unwrap();
+        let importer = SSTImporter::new(&cfg, &importer_dir, ApiVersion::V1).unwrap();
         let db_path = importer_dir.path().join("db");
         let db = new_test_engine(db_path.to_str().unwrap(), DATA_CFS);
 

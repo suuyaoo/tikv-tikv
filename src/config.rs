@@ -3380,7 +3380,6 @@ pub enum Module {
     RaftEngine,
     Storage,
     Security,
-    Encryption,
     Import,
     Backup,
     PessimisticTxn,
@@ -4226,8 +4225,6 @@ mod tests {
                     num_threads = 4
                     [gcc]
                     batch-keys = 1024
-                    [[security.encryption.master-keys]]
-                    type = "file"
                 "#,
             )
             .unwrap();
@@ -4243,7 +4240,6 @@ mod tests {
                 "readpool.unified.min-threads-count".to_owned(),
                 "import.num_threads".to_owned(),
                 "gcc".to_owned(),
-                "security.encryption.master-keys".to_owned(),
             ],
         );
     }

@@ -7,9 +7,6 @@ use std::thread;
 use std::time::Duration;
 
 use crate::Config;
-use encryption_export::{
-    data_key_manager_from_config, DataKeyManager, FileConfig, MasterKeyConfig,
-};
 use engine_rocks::config::BlobRunMode;
 use engine_rocks::raw::DB;
 use engine_rocks::{
@@ -19,7 +16,6 @@ use engine_traits::{Engines, Iterable, Peekable, ALL_CFS, CF_DEFAULT, CF_RAFT};
 use file_system::IORateLimiter;
 use futures::executor::block_on;
 use grpcio::{ChannelBuilder, Environment};
-use kvproto::encryptionpb::EncryptionMethod;
 use kvproto::kvrpcpb::*;
 use kvproto::metapb::{self, RegionEpoch};
 use kvproto::pdpb::{
@@ -622,16 +618,11 @@ pub fn create_test_engine(
     cfg: &Config,
 ) -> (
     Engines<RocksEngine, RocksEngine>,
-    Option<Arc<DataKeyManager>>,
     TempDir,
 ) {
     let dir = test_util::temp_dir("test_cluster", cfg.prefer_mem);
-    let key_manager =
-        data_key_manager_from_config(&cfg.security.encryption, dir.path().to_str().unwrap())
-            .unwrap()
-            .map(Arc::new);
 
-    let env = get_env(key_manager.clone(), limiter).unwrap();
+    let env = get_env(limiter).unwrap();
     let cache = cfg.storage.block_cache.build_shared_cache();
 
     let kv_path = dir.path().join(DEFAULT_ROCKSDB_SUB_DIR);
@@ -680,7 +671,7 @@ pub fn create_test_engine(
     engine.set_shared_block_cache(shared_block_cache);
     raft_engine.set_shared_block_cache(shared_block_cache);
     let engines = Engines::new(engine, raft_engine);
-    (engines, key_manager, dir)
+    (engines, dir)
 }
 
 pub fn configure_for_request_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
@@ -763,20 +754,6 @@ pub fn configure_for_enable_titan<T: Simulator>(
 
 pub fn configure_for_disable_titan<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.cfg.rocksdb.titan.enabled = false;
-}
-
-pub fn configure_for_encryption<T: Simulator>(cluster: &mut Cluster<T>) {
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let master_key_file = manifest_dir.join("src/master-key.data");
-
-    let cfg = &mut cluster.cfg.security.encryption;
-    cfg.data_encryption_method = EncryptionMethod::Aes128Ctr;
-    cfg.data_key_rotation_period = ReadableDuration(Duration::from_millis(100));
-    cfg.master_key = MasterKeyConfig::File {
-        config: FileConfig {
-            path: master_key_file.to_str().unwrap().to_owned(),
-        },
-    }
 }
 
 /// Keep putting random kvs until specified size limit is reached.

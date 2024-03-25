@@ -69,7 +69,6 @@ batch-system = { path = "../components/batch-system", default-features = false }
 crc64fast = "0.1"
 crossbeam = "0.8"
 online_config = { path = "../components/online_config", default-features = false }
-encryption = { path = "../components/encryption", default-features = false }
 cdc = { path = "../components/cdc", default-features = false }
 futures = "0.3"
 grpcio = { version = "0.9",  default-features = false, features = ["openssl-vendored", "protobuf-codec"] }

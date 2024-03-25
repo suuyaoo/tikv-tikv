@@ -24,7 +24,6 @@ nortcheck = []
 
 [dependencies]
 api_version = { path = "../api_version", default-features = false }
-encryption = { path = "../encryption", default-features = false }
 engine_traits = { path = "../engine_traits", default-features = false }
 file_system = { path = "../file_system", default-features = false }
 keys = { path = "../keys", default-features = false }
@@ -54,7 +53,7 @@ case_macros = { path = "../case_macros" }
 git = "https://github.com/tikv/rust-rocksdb.git"
 package = "rocksdb"
 branch = "tikv-5.4"
-features = ["encryption", "static_libcpp"]
+features = ["static_libcpp"]
 
 [dev-dependencies]
 rand = "0.8"

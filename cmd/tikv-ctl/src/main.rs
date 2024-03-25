@@ -9,18 +9,11 @@ mod cmd;
 mod executor;
 mod util;
 
-use encryption_export::{
-    create_backend, data_key_manager_from_config, encryption_method_from_db_encryption_method,
-    DataKeyManager, DecrypterReader, Iv,
-};
 use engine_rocks::get_env;
-use engine_traits::EncryptionKeyManager;
-use file_system::calc_crc32;
 use futures::executor::block_on;
 use gag::BufferRedirect;
 use grpcio::{CallOption, ChannelBuilder, Environment};
 use kvproto::debugpb::{Db as DBType, *};
-use kvproto::encryptionpb::EncryptionMethod;
 use kvproto::kvrpcpb::SplitRegionRequest;
 use kvproto::raft_serverpb::SnapshotMeta;
 use kvproto::tikvpb::TikvClient;
@@ -29,8 +22,8 @@ use protobuf::Message;
 use regex::Regex;
 use security::{SecurityConfig, SecurityManager};
 use std::borrow::ToOwned;
-use std::fs::{self, File, OpenOptions};
-use std::io::{self, BufRead, BufReader, Read};
+use std::fs::{self, File};
+use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
 use std::string::ToString;
 use std::sync::Arc;
@@ -110,76 +103,6 @@ fn main() {
             let path = file.as_ref();
             dump_snap_meta_file(path);
         }
-        Cmd::DecryptFile { file, out_file } => {
-            let message =
-                "This action will expose sensitive data as plaintext on persistent storage";
-            if !warning_prompt(message) {
-                return;
-            }
-            let infile = &file;
-            let outfile = &out_file;
-            println!("infile: {}, outfile: {}", infile, outfile);
-
-            let key_manager =
-                match data_key_manager_from_config(&cfg.security.encryption, &cfg.storage.data_dir)
-                    .expect("data_key_manager_from_config should success")
-                {
-                    Some(mgr) => mgr,
-                    None => {
-                        println!("Encryption is disabled");
-                        println!("crc32: {}", calc_crc32(infile).unwrap());
-                        return;
-                    }
-                };
-
-            let infile1 = Path::new(infile).canonicalize().unwrap();
-            let file_info = key_manager.get_file(infile1.to_str().unwrap()).unwrap();
-
-            let mthd = encryption_method_from_db_encryption_method(file_info.method);
-            if mthd == EncryptionMethod::Plaintext {
-                println!(
-                    "{} is not encrypted, skip to decrypt it into {}",
-                    infile, outfile
-                );
-                println!("crc32: {}", calc_crc32(infile).unwrap());
-                return;
-            }
-
-            let mut outf = OpenOptions::new()
-                .create(true)
-                .truncate(true)
-                .write(true)
-                .open(outfile)
-                .unwrap();
-
-            let iv = Iv::from_slice(&file_info.iv).unwrap();
-            let f = File::open(&infile).unwrap();
-            let mut reader = DecrypterReader::new(f, mthd, &file_info.key, iv).unwrap();
-
-            io::copy(&mut reader, &mut outf).unwrap();
-            println!("crc32: {}", calc_crc32(outfile).unwrap());
-        }
-        Cmd::EncryptionMeta { cmd: subcmd } => match subcmd {
-            EncryptionMetaCmd::DumpKey { ids } => {
-                let message = "This action will expose encryption key(s) as plaintext. Do not output the \
-                    result in file on disk.";
-                if !warning_prompt(message) {
-                    return;
-                }
-                DataKeyManager::dump_key_dict(
-                    create_backend(&cfg.security.encryption.master_key)
-                        .expect("encryption-meta master key creation"),
-                    &cfg.storage.data_dir,
-                    ids,
-                )
-                .unwrap();
-            }
-            EncryptionMetaCmd::DumpFile { path } => {
-                let path =
-                    path.map(|path| fs::canonicalize(path).unwrap().to_str().unwrap().to_owned());
-                DataKeyManager::dump_file_dict(&cfg.storage.data_dir, path.as_deref()).unwrap();
-            }
-        },
         Cmd::CompactCluster {
             db,
             cf,
@@ -642,10 +565,7 @@ fn read_fail_file(path: &str) -> Vec<(String, String)> {
 }
 
 fn run_ldb_command(args: Vec<String>, cfg: &TiKvConfig) {
-    let key_manager = data_key_manager_from_config(&cfg.security.encryption, &cfg.storage.data_dir)
-        .unwrap()
-        .map(Arc::new);
-    let env = get_env(key_manager, None /*io_rate_limiter*/).unwrap();
+    let env = get_env(None /*io_rate_limiter*/).unwrap();
     let mut opts = cfg.rocksdb.build_opt();
     opts.set_env(env);
 

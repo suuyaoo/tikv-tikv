@@ -1,6 +1,5 @@
 // Copyright 2021 TiKV Project Authors. Licensed under Apache-2.0.
 
-use encryption_export::data_key_manager_from_config;
 use engine_rocks::get_env;
 use engine_rocks::raw_util::{db_exist, new_engine_opt};
 use engine_rocks::RocksEngine;
@@ -58,13 +57,9 @@ pub fn new_debug_executor(
     let data_dir = data_dir.unwrap();
     let kv_path = cfg.infer_kv_engine_path(Some(data_dir)).unwrap();
 
-    let key_manager = data_key_manager_from_config(&cfg.security.encryption, &cfg.storage.data_dir)
-        .unwrap()
-        .map(Arc::new);
-
     let cache = cfg.storage.block_cache.build_shared_cache();
     let shared_block_cache = cache.is_some();
-    let env = get_env(key_manager.clone(), None /*io_rate_limiter*/).unwrap();
+    let env = get_env(None /*io_rate_limiter*/).unwrap();
 
     let mut kv_db_opts = cfg.rocksdb.build_opt();
     kv_db_opts.set_env(env.clone());
@@ -106,7 +101,7 @@ pub fn new_debug_executor(
             error!("raft engine not exists: {}", config.dir);
             process::exit(-1);
         }
-        let raft_db = RaftLogEngine::new(config, key_manager, None /*io_rate_limiter*/).unwrap();
+        let raft_db = RaftLogEngine::new(config, None /*io_rate_limiter*/).unwrap();
         let debugger = Debugger::new(Engines::new(kv_db, raft_db), cfg_controller);
         Box::new(debugger) as Box<dyn DebugExecutor>
     }

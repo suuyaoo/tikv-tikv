@@ -7,7 +7,6 @@ mod test_cmd_epoch_checker;
 mod test_conf_change;
 mod test_disk_full;
 mod test_early_apply;
-mod test_encryption;
 mod test_gc_worker;
 mod test_hibernate;
 mod test_import_service;

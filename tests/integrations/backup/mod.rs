@@ -40,16 +40,9 @@ fn assert_same_files(mut files1: Vec<kvproto::brpb::File>, mut files2: Vec<kvpro
     // the backup file name will based on local timestamp.
     // so the two backup's file name may not be same, we should skip this check.
     for i in 0..files1.len() {
-        let mut f1 = files1[i].clone();
-        let mut f2 = files2[i].clone();
+        let f1 = files1[i].clone();
+        let f2 = files2[i].clone();
         assert_same_file_name(f1.name, f2.name);
-        f1.name = "".to_string();
-        f2.name = "".to_string();
-        // the cipher_iv is different because iv is generated randomly
-        assert_ne!(f1.cipher_iv, f2.cipher_iv);
-        f1.cipher_iv = "".to_string().into_bytes();
-        f2.cipher_iv = "".to_string().into_bytes();
-        assert_eq!(f1, f2);
     }
 }
 

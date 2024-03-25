@@ -10,7 +10,6 @@ use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
 use collections::HashSet;
-use encryption::EncryptionConfig;
 use grpcio::{
     CertificateRequestType, Channel, ChannelBuilder, ChannelCredentialsBuilder, CheckResult,
     RpcContext, RpcStatus, RpcStatusCode, ServerBuilder, ServerChecker, ServerCredentialsBuilder,
@@ -30,7 +29,6 @@ pub struct SecurityConfig {
     pub override_ssl_target: String,
     pub cert_allowed_cn: HashSet<String>,
     pub redact_info_log: Option<bool>,
-    pub encryption: EncryptionConfig,
 }
 
 impl Default for SecurityConfig {
@@ -42,7 +40,6 @@ impl Default for SecurityConfig {
             override_ssl_target: String::new(),
             cert_allowed_cn: HashSet::default(),
             redact_info_log: None,
-            encryption: EncryptionConfig::default(),
         }
     }
 }

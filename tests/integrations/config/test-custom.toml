@@ -579,19 +579,6 @@ cert-allowed-cn = [
     "example.tikv.com",
 ]
 
-[security.encryption]
-data-encryption-method = "aes128-ctr"
-data-key-rotation-period = "14d"
-enable-file-dictionary-log = false
-file-dictionary-rewrite-threshold = 123456
-
-[security.encryption.master-key]
-type = "file"
-path = "/master/key/path"
-
-[security.encryption.previous-master-key]
-type = "plaintext"
-
 [backup]
 num-threads = 456
 batch-size = 7

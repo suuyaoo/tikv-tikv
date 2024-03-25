@@ -73,41 +73,6 @@ error = '''
 KV:Coprocessor:InvalidCharacterString
 '''
 
-["KV:Encryption:Rocks"]
-error = '''
-KV:Encryption:Rocks
-'''
-
-["KV:Encryption:IO"]
-error = '''
-KV:Encryption:IO
-'''
-
-["KV:Encryption:Crypter"]
-error = '''
-KV:Encryption:Crypter
-'''
-
-["KV:Encryption:Proto"]
-error = '''
-KV:Encryption:Proto
-'''
-
-["KV:Encryption:UnknownEncryption"]
-error = '''
-KV:Encryption:UnknownEncryption
-'''
-
-["KV:Encryption:WrongMasterKey"]
-error = '''
-KV:Encryption:WrongMasterKey
-'''
-
-["KV:Encryption:BothMasterKeyFail"]
-error = '''
-KV:Encryption:BothMasterKeyFail
-'''
-
 ["KV:Engine:Engine"]
 error = '''
 KV:Engine:Engine

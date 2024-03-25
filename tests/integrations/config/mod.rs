@@ -9,14 +9,12 @@ use slog::Level;
 
 use batch_system::Config as BatchSystemConfig;
 use collections::{HashMap, HashSet};
-use encryption::{EncryptionConfig, FileConfig, MasterKeyConfig};
 use engine_rocks::config::{BlobRunMode, CompressionType, LogLevel};
 use engine_rocks::raw::{
     CompactionPriority, DBCompactionStyle, DBCompressionType, DBRateLimiterMode, DBRecoveryMode,
 };
 use engine_traits::PerfLevel;
 use file_system::{IOPriority, IORateLimitMode};
-use kvproto::encryptionpb::EncryptionMethod;
 use pd_client::Config as PdConfig;
 use raft_log_engine::RecoveryMode;
 use raftstore::coprocessor::{Config as CopConfig, ConsistencyCheckMethod};
@@ -687,18 +685,6 @@ fn test_serde_custom_tikv_config() {
         override_ssl_target: "".to_owned(),
         cert_allowed_cn,
         redact_info_log: Some(true),
-        encryption: EncryptionConfig {
-            data_encryption_method: EncryptionMethod::Aes128Ctr,
-            data_key_rotation_period: ReadableDuration::days(14),
-            enable_file_dictionary_log: false,
-            file_dictionary_rewrite_threshold: 123456,
-            master_key: MasterKeyConfig::File {
-                config: FileConfig {
-                    path: "/master/key/path".to_owned(),
-                },
-            },
-            previous_master_key: MasterKeyConfig::Plaintext,
-        },
     };
     value.backup = BackupConfig {
         num_threads: 456,

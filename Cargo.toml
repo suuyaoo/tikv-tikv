@@ -59,7 +59,6 @@ online_config = { path = "components/online_config" }
 crc32fast = "1.2"
 crc64fast = "0.1"
 crossbeam = "0.8"
-encryption_export = { path = "components/encryption/export", default-features = false }
 engine_panic = { path = "components/engine_panic", default-features = false }
 engine_rocks = { path = "components/engine_rocks", default-features = false }
 engine_test = { path = "components/engine_test", default-features = false }
@@ -211,8 +210,6 @@ members = [
   "components/cdc",
   "components/raftstore",
   "components/into_other",
-  "components/encryption",
-  "components/encryption/export",
   "components/error_code",
   "components/concurrency_manager",
   "components/server",

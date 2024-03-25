@@ -5,7 +5,6 @@ use std::io::{Read, Result as IoResult, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::sync::Arc;
 
-use encryption::{DataKeyManager, DecrypterReader, EncrypterWriter};
 use engine_traits::{
     CacheStats, RaftEngine, RaftEngineReadOnly, RaftLogBatch as RaftLogBatchTrait, RaftLogGCTask,
     Result,
@@ -16,7 +15,6 @@ use raft::eraftpb::Entry;
 use raft_engine::{
     Command, Engine as RawRaftEngine, Error as RaftEngineError, FileBuilder, LogBatch, MessageExt,
 };
-use tikv_util::Either;
 
 pub use raft_engine::{Config as RaftEngineConfig, RecoveryMode};
 
@@ -32,16 +30,13 @@ impl MessageExt for MessageExtTyped {
 }
 
 struct ManagedReader<R: Seek + Read> {
-    inner: Either<R, DecrypterReader<R>>,
+    reader: R,
     rate_limiter: Option<Arc<IORateLimiter>>,
 }
 
 impl<R: Seek + Read> Seek for ManagedReader<R> {
     fn seek(&mut self, pos: SeekFrom) -> IoResult<u64> {
-        match self.inner.as_mut() {
-            Either::Left(reader) => reader.seek(pos),
-            Either::Right(reader) => reader.seek(pos),
-        }
+        self.reader.seek(pos)
     }
 }
 
@@ -51,24 +46,18 @@ impl<R: Seek + Read> Read for ManagedReader<R> {
         if let Some(ref mut limiter) = self.rate_limiter {
             size = limiter.request(IOType::ForegroundRead, IOOp::Read, size);
         }
-        match self.inner.as_mut() {
-            Either::Left(reader) => reader.read(&mut buf[..size]),
-            Either::Right(reader) => reader.read(&mut buf[..size]),
-        }
+        self.reader.read(&mut buf[..size])
     }
 }
 
 struct ManagedWriter<W: Seek + Write> {
-    inner: Either<W, EncrypterWriter<W>>,
+    writer: W,
     rate_limiter: Option<Arc<IORateLimiter>>,
 }
 
 impl<W: Seek + Write> Seek for ManagedWriter<W> {
     fn seek(&mut self, pos: SeekFrom) -> IoResult<u64> {
-        match self.inner.as_mut() {
-            Either::Left(writer) => writer.seek(pos),
-            Either::Right(writer) => writer.seek(pos),
-        }
+        self.writer.seek(pos)
     }
 }
 
@@ -78,10 +67,7 @@ impl<W: Seek + Write> Write for ManagedWriter<W> {
         if let Some(ref mut limiter) = self.rate_limiter {
             size = limiter.request(IOType::ForegroundWrite, IOOp::Write, size);
         }
-        match self.inner.as_mut() {
-            Either::Left(writer) => writer.write(&buf[..size]),
-            Either::Right(writer) => writer.write(&buf[..size]),
-        }
+        self.writer.write(&buf[..size])
     }
 
     fn flush(&mut self) -> IoResult<()> {
@@ -90,17 +76,14 @@ impl<W: Seek + Write> Write for ManagedWriter<W> {
 }
 
 struct ManagedFileBuilder {
-    key_manager: Option<Arc<DataKeyManager>>,
     rate_limiter: Option<Arc<IORateLimiter>>,
 }
 
 impl ManagedFileBuilder {
     fn new(
-        key_manager: Option<Arc<DataKeyManager>>,
         rate_limiter: Option<Arc<IORateLimiter>>,
     ) -> Self {
         Self {
-            key_manager,
             rate_limiter,
         }
     }
@@ -110,38 +93,24 @@ impl FileBuilder for ManagedFileBuilder {
     type Reader<R: Seek + Read + Send> = ManagedReader<R>;
     type Writer<W: Seek + Write + Send> = ManagedWriter<W>;
 
-    fn build_reader<R>(&self, path: &Path, reader: R) -> IoResult<Self::Reader<R>>
+    fn build_reader<R>(&self, _path: &Path, reader: R) -> IoResult<Self::Reader<R>>
     where
         R: Seek + Read + Send,
     {
-        if let Some(ref key_manager) = self.key_manager {
-            Ok(ManagedReader {
-                inner: Either::Right(key_manager.open_file_with_reader(path, reader)?),
-                rate_limiter: self.rate_limiter.clone(),
-            })
-        } else {
-            Ok(ManagedReader {
-                inner: Either::Left(reader),
-                rate_limiter: self.rate_limiter.clone(),
-            })
-        }
+        Ok(ManagedReader {
+            reader: reader,
+            rate_limiter: self.rate_limiter.clone(),
+        })
     }
 
-    fn build_writer<W>(&self, path: &Path, writer: W, create: bool) -> IoResult<Self::Writer<W>>
+    fn build_writer<W>(&self, _path: &Path, writer: W, _create: bool) -> IoResult<Self::Writer<W>>
     where
         W: Seek + Write + Send,
     {
-        if let Some(ref key_manager) = self.key_manager {
-            Ok(ManagedWriter {
-                inner: Either::Right(key_manager.open_file_with_writer(path, writer, create)?),
-                rate_limiter: self.rate_limiter.clone(),
-            })
-        } else {
-            Ok(ManagedWriter {
-                inner: Either::Left(writer),
-                rate_limiter: self.rate_limiter.clone(),
-            })
-        }
+        Ok(ManagedWriter {
+            writer: writer,
+            rate_limiter: self.rate_limiter.clone(),
+        })
     }
 }
 
@@ -151,10 +120,9 @@ pub struct RaftLogEngine(Arc<RawRaftEngine<ManagedFileBuilder>>);
 impl RaftLogEngine {
     pub fn new(
         config: RaftEngineConfig,
-        key_manager: Option<Arc<DataKeyManager>>,
         rate_limiter: Option<Arc<IORateLimiter>>,
     ) -> Result<Self> {
-        let file_builder = Arc::new(ManagedFileBuilder::new(key_manager, rate_limiter));
+        let file_builder = Arc::new(ManagedFileBuilder::new(rate_limiter));
         Ok(RaftLogEngine(Arc::new(
             RawRaftEngine::open_with_file_builder(config, file_builder).map_err(transfer_error)?,
         )))

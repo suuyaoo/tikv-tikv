@@ -21,7 +21,6 @@ use tempfile::TempDir;
 
 use crate::Config;
 use collections::{HashMap, HashSet};
-use encryption_export::DataKeyManager;
 use engine_rocks::raw::DB;
 use engine_rocks::{Compat, RocksEngine, RocksSnapshot};
 use engine_traits::{
@@ -60,7 +59,6 @@ pub trait Simulator {
         cfg: Config,
         engines: Engines<RocksEngine, RocksEngine>,
         store_meta: Arc<Mutex<StoreMeta>>,
-        key_manager: Option<Arc<DataKeyManager>>,
         router: RaftRouter<RocksEngine, RocksEngine>,
         system: RaftBatchSystem<RocksEngine, RocksEngine>,
     ) -> ServerResult<u64>;
@@ -145,10 +143,8 @@ pub struct Cluster<T: Simulator> {
     pub paths: Vec<TempDir>,
     pub dbs: Vec<Engines<RocksEngine, RocksEngine>>,
     pub store_metas: HashMap<u64, Arc<Mutex<StoreMeta>>>,
-    key_managers: Vec<Option<Arc<DataKeyManager>>>,
     pub io_rate_limiter: Option<Arc<IORateLimiter>>,
     pub engines: HashMap<u64, Engines<RocksEngine, RocksEngine>>,
-    key_managers_map: HashMap<u64, Option<Arc<DataKeyManager>>>,
     pub labels: HashMap<u64, HashMap<String, String>>,
     group_props: HashMap<u64, GroupProperties>,
 
@@ -175,10 +171,8 @@ impl<T: Simulator> Cluster<T> {
             paths: vec![],
             dbs: vec![],
             store_metas: HashMap::default(),
-            key_managers: vec![],
             io_rate_limiter: None,
             engines: HashMap::default(),
-            key_managers_map: HashMap::default(),
             labels: HashMap::default(),
             group_props: HashMap::default(),
             sim,
@@ -210,16 +204,13 @@ impl<T: Simulator> Cluster<T> {
     /// mark them as bootstrapped in `Cluster`.
     pub fn set_bootstrapped(&mut self, node_id: u64, offset: usize) {
         let engines = self.dbs[offset].clone();
-        let key_mgr = self.key_managers[offset].clone();
         assert!(self.engines.insert(node_id, engines).is_none());
-        assert!(self.key_managers_map.insert(node_id, key_mgr).is_none());
     }
 
     fn create_engine(&mut self, router: Option<RaftRouter<RocksEngine, RocksEngine>>) {
-        let (engines, key_manager, dir) =
+        let (engines, dir) =
             create_test_engine(router, self.io_rate_limiter.clone(), &self.cfg);
         self.dbs.push(engines);
-        self.key_managers.push(key_manager);
         self.paths.push(dir);
     }
 
@@ -248,7 +239,6 @@ impl<T: Simulator> Cluster<T> {
             self.create_engine(Some(router.clone()));
 
             let engines = self.dbs.last().unwrap().clone();
-            let key_mgr = self.key_managers.last().unwrap().clone();
             let store_meta = Arc::new(Mutex::new(StoreMeta::new(PENDING_MSG_CAP)));
 
             let props = GroupProperties::default();
@@ -260,14 +250,12 @@ impl<T: Simulator> Cluster<T> {
                 self.cfg.clone(),
                 engines.clone(),
                 store_meta.clone(),
-                key_mgr.clone(),
                 router,
                 system,
             )?;
             self.group_props.insert(node_id, props);
             self.engines.insert(node_id, engines);
             self.store_metas.insert(node_id, store_meta);
-            self.key_managers_map.insert(node_id, key_mgr);
         }
         Ok(())
     }
@@ -310,7 +298,6 @@ impl<T: Simulator> Cluster<T> {
     pub fn run_node(&mut self, node_id: u64) -> ServerResult<()> {
         debug!("starting node {}", node_id);
         let engines = self.engines[&node_id].clone();
-        let key_mgr = self.key_managers_map[&node_id].clone();
         let (router, system) = create_raft_batch_system(&self.cfg.raft_store);
         let mut cfg = self.cfg.clone();
         if let Some(labels) = self.labels.get(&node_id) {
@@ -333,7 +320,7 @@ impl<T: Simulator> Cluster<T> {
         // FIXME: rocksdb event listeners may not work, because we change the router.
         self.sim
             .wl()
-            .run_node(node_id, cfg, engines, store_meta, key_mgr, router, system)?;
+            .run_node(node_id, cfg, engines, store_meta, router, system)?;
         debug!("node {} started", node_id);
         Ok(())
     }
@@ -612,8 +599,6 @@ impl<T: Simulator> Cluster<T> {
             self.engines.insert(id, engines.clone());
             let store_meta = Arc::new(Mutex::new(StoreMeta::new(PENDING_MSG_CAP)));
             self.store_metas.insert(id, store_meta);
-            self.key_managers_map
-                .insert(id, self.key_managers[i].clone());
         }
 
         let mut region = metapb::Region::default();
@@ -645,8 +630,6 @@ impl<T: Simulator> Cluster<T> {
             self.engines.insert(id, engines.clone());
             let store_meta = Arc::new(Mutex::new(StoreMeta::new(PENDING_MSG_CAP)));
             self.store_metas.insert(id, store_meta);
-            self.key_managers_map
-                .insert(id, self.key_managers[i].clone());
         }
 
         for (&id, engines) in &self.engines {
@@ -698,9 +681,6 @@ impl<T: Simulator> Cluster<T> {
         let engines = self.dbs.last().unwrap().clone();
         bootstrap_store(&engines, self.id(), node_id).unwrap();
         self.engines.insert(node_id, engines);
-
-        let key_mgr = self.key_managers.last().unwrap().clone();
-        self.key_managers_map.insert(node_id, key_mgr);
 
         self.run_node(node_id).unwrap();
         node_id

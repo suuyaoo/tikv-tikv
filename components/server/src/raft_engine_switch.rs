@@ -1,7 +1,6 @@
 // Copyright 2021 TiKV Project Authors. Licensed under Apache-2.0.
 
 use crossbeam::channel::{unbounded, Receiver};
-use encryption_export::DataKeyManager;
 use engine_rocks::{self, raw::Env, RocksEngine};
 use engine_traits::{
     CompactExt, DeleteStrategy, Error as EngineError, Iterable, Iterator, MiscExt, RaftEngine,
@@ -214,7 +213,6 @@ fn run_dump_raftdb_worker(
 
 pub fn check_and_dump_raft_engine(
     config: &TiKvConfig,
-    key_manager: Option<Arc<DataKeyManager>>,
     io_rate_limiter: Option<Arc<IORateLimiter>>,
     rocks_engine: &RocksEngine,
     thread_num: usize,
@@ -230,7 +228,7 @@ pub fn check_and_dump_raft_engine(
     // Clean the target engine if it exists.
     clear_raft_db(rocks_engine).expect("clear_raft_db");
 
-    let raft_engine = RaftLogEngine::new(raft_engine_config.clone(), key_manager, io_rate_limiter)
+    let raft_engine = RaftLogEngine::new(raft_engine_config.clone(), io_rate_limiter)
         .expect("open raft engine");
 
     let count_size = Arc::new(AtomicUsize::new(0));
@@ -343,7 +341,6 @@ mod tests {
         // Dump logs from RocksEngine to RaftLogEngine.
         let raft_engine = RaftLogEngine::new(
             cfg.raft_engine.config(),
-            None, /*key_manager*/
             None, /*io_rate_limiter*/
         )
         .expect("open raft engine");
@@ -379,7 +376,6 @@ mod tests {
         }
         check_and_dump_raft_engine(
             &cfg,
-            None, /*key_manager*/
             None, /*io_rate_limiter*/
             &rocks_engine,
             4,

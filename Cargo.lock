@@ -216,7 +216,6 @@ dependencies = [
  "collections",
  "concurrency_manager",
  "crc64fast",
- "encryption",
  "engine_rocks",
  "engine_traits",
  "error_code",
@@ -923,63 +922,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "encryption"
-version = "0.0.1"
-dependencies = [
- "async-trait",
- "byteorder",
- "bytes 1.0.1",
- "crc32fast",
- "crossbeam",
- "derive_more",
- "engine_traits",
- "error_code",
- "fail",
- "file_system",
- "futures 0.3.15",
- "futures-util",
- "hex 0.4.2",
- "kvproto",
- "lazy_static",
- "matches",
- "online_config",
- "openssl",
- "prometheus",
- "protobuf",
- "rand 0.8.3",
- "serde",
- "serde_derive",
- "slog",
- "slog-global",
- "tempfile",
- "test_util",
- "thiserror",
- "tikv_alloc",
- "tikv_util",
- "tokio",
- "toml",
-]
-
-[[package]]
-name = "encryption_export"
-version = "0.0.1"
-dependencies = [
- "async-trait",
- "derive_more",
- "encryption",
- "error_code",
- "file_system",
- "kvproto",
- "openssl",
- "protobuf",
- "rust-ini",
- "slog",
- "slog-global",
- "structopt",
- "tikv_util",
-]
-
-[[package]]
 name = "engine_panic"
 version = "0.0.1"
 dependencies = [
@@ -998,7 +940,6 @@ dependencies = [
  "api_version",
  "case_macros",
  "collections",
- "encryption",
  "engine_traits",
  "fail",
  "file_system",
@@ -1106,7 +1047,6 @@ version = "0.0.1"
 dependencies = [
  "async-trait",
  "bytes 1.0.1",
- "encryption",
  "engine_traits",
  "fail",
  "ffi-support",
@@ -1140,7 +1080,6 @@ name = "external_storage_export"
 version = "0.0.1"
 dependencies = [
  "async-trait",
- "encryption",
  "engine_traits",
  "external_storage",
  "ffi-support",
@@ -2050,7 +1989,6 @@ dependencies = [
  "libtitan_sys",
  "libz-sys",
  "lz4-sys",
- "openssl-sys",
  "snappy-sys",
  "tikv-jemalloc-sys",
  "zstd-sys",
@@ -3162,7 +3100,6 @@ dependencies = [
 name = "raft_log_engine"
 version = "0.0.1"
 dependencies = [
- "encryption",
  "engine_traits",
  "file_system",
  "kvproto",
@@ -3193,8 +3130,6 @@ dependencies = [
  "crc32fast",
  "crossbeam",
  "derivative",
- "encryption",
- "encryption_export",
  "engine_panic",
  "engine_rocks",
  "engine_test",
@@ -3704,7 +3639,6 @@ name = "security"
 version = "0.0.1"
 dependencies = [
  "collections",
- "encryption",
  "grpcio",
  "serde",
  "serde_derive",
@@ -3879,8 +3813,6 @@ dependencies = [
  "collections",
  "concurrency_manager",
  "crossbeam",
- "encryption",
- "encryption_export",
  "engine_rocks",
  "engine_traits",
  "error_code",
@@ -4072,7 +4004,6 @@ version = "0.1.0"
 dependencies = [
  "api_version",
  "crc32fast",
- "encryption",
  "engine_rocks",
  "engine_traits",
  "error_code",
@@ -4323,7 +4254,6 @@ dependencies = [
  "collections",
  "concurrency_manager",
  "crossbeam",
- "encryption_export",
  "engine_rocks",
  "engine_traits",
  "fail",
@@ -4387,7 +4317,6 @@ version = "0.0.1"
 dependencies = [
  "backtrace",
  "collections",
- "encryption_export",
  "fail",
  "grpcio",
  "kvproto",
@@ -4417,7 +4346,6 @@ dependencies = [
  "criterion-cpu-time",
  "criterion-perf-events",
  "crossbeam",
- "encryption",
  "engine_rocks",
  "engine_traits",
  "error_code",
@@ -4537,7 +4465,6 @@ dependencies = [
  "crc32fast",
  "crc64fast",
  "crossbeam",
- "encryption_export",
  "engine_panic",
  "engine_rocks",
  "engine_test",
@@ -4640,7 +4567,6 @@ dependencies = [
  "collections",
  "concurrency_manager",
  "crossbeam",
- "encryption_export",
  "engine_rocks",
  "engine_traits",
  "error_code",

@@ -1,21 +1,15 @@
 // Copyright 2019 TiKV Project Authors. Licensed under Apache-2.0.
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufReader, Read, Write};
-use std::sync::Arc;
 use std::{fs, usize};
 
-use encryption::{
-    encryption_method_from_db_encryption_method, DataKeyManager, DecrypterReader, EncrypterWriter,
-    Iv,
-};
 use engine_traits::{
-    CfName, EncryptionKeyManager, Error as EngineError, Iterable, KvEngine, Mutable,
+    CfName, Error as EngineError, Iterable, KvEngine, Mutable,
     SstCompressionType, SstWriter, SstWriterBuilder, WriteBatch,
 };
-use kvproto::encryptionpb::EncryptionMethod;
 use tikv_util::codec::bytes::{BytesEncoder, CompactBytesFromFileDecoder};
 use tikv_util::time::Limiter;
-use tikv_util::{box_try, debug};
+use tikv_util::box_try;
 
 use super::{Error, IO_LIMITER_CHUNK_SIZE};
 
@@ -35,7 +29,6 @@ pub struct BuildStatistics {
 /// otherwise the file will be created and synchronized.
 pub fn build_plain_cf_file<E>(
     path: &str,
-    key_mgr: Option<&Arc<DataKeyManager>>,
     snap: &E::Snapshot,
     cf: &str,
     start_key: &[u8],
@@ -47,29 +40,8 @@ where
     let mut file = Some(box_try!(
         OpenOptions::new().write(true).create_new(true).open(path)
     ));
-    let mut encrypted_file: Option<EncrypterWriter<File>> = None;
-    let mut should_encrypt = false;
 
-    if let Some(key_mgr) = key_mgr {
-        let enc_info = box_try!(key_mgr.new_file(path));
-        let mthd = encryption_method_from_db_encryption_method(enc_info.method);
-        if mthd != EncryptionMethod::Plaintext {
-            let writer = box_try!(EncrypterWriter::new(
-                file.take().unwrap(),
-                mthd,
-                &enc_info.key,
-                box_try!(Iv::from_slice(&enc_info.iv)),
-            ));
-            encrypted_file = Some(writer);
-            should_encrypt = true;
-        }
-    }
-
-    let mut writer = if !should_encrypt {
-        file.as_mut().unwrap() as &mut dyn Write
-    } else {
-        encrypted_file.as_mut().unwrap() as &mut dyn Write
-    };
+    let mut writer = file.as_mut().unwrap() as &mut dyn Write;
 
     let mut stats = BuildStatistics::default();
     box_try!(snap.scan_cf(cf, start_key, end_key, false, |key, value| {
@@ -82,11 +54,7 @@ where
 
     if stats.key_count > 0 {
         box_try!(BytesEncoder::encode_compact_bytes(&mut writer, b""));
-        let file = if !should_encrypt {
-            file.unwrap()
-        } else {
-            encrypted_file.unwrap().finalize().unwrap()
-        };
+        let file = file.unwrap();
         box_try!(file.sync_all());
     } else {
         drop(file);
@@ -144,7 +112,6 @@ where
 /// key value pairs written to db.
 pub fn apply_plain_cf_file<E, F>(
     path: &str,
-    key_mgr: Option<&Arc<DataKeyManager>>,
     stale_detector: &impl StaleDetector,
     db: &E,
     cf: &str,
@@ -156,12 +123,7 @@ where
     F: for<'r> FnMut(&'r [(Vec<u8>, Vec<u8>)]),
 {
     let file = box_try!(File::open(path));
-    let mut decoder = if let Some(key_mgr) = key_mgr {
-        let reader = get_decrypter_reader(path, key_mgr)?;
-        BufReader::new(reader)
-    } else {
-        BufReader::new(Box::new(file) as Box<dyn Read + Send>)
-    };
+    let mut decoder = BufReader::new(Box::new(file) as Box<dyn Read + Send>);
 
     let mut wb = db.write_batch();
     let mut write_to_db = |batch: &mut Vec<(Vec<u8>, Vec<u8>)>| -> Result<(), EngineError> {
@@ -218,27 +180,6 @@ where
     Ok(writer)
 }
 
-// TODO: Use DataKeyManager::open_file_for_read() instead.
-pub fn get_decrypter_reader(
-    file: &str,
-    encryption_key_manager: &DataKeyManager,
-) -> Result<Box<dyn Read + Send>, Error> {
-    let enc_info = box_try!(encryption_key_manager.get_file(file));
-    let mthd = encryption_method_from_db_encryption_method(enc_info.method);
-    debug!(
-        "get_decrypter_reader gets enc_info for {:?}, method: {:?}",
-        file, mthd
-    );
-    if mthd == EncryptionMethod::Plaintext {
-        let f = box_try!(File::open(file));
-        return Ok(Box::new(f) as Box<dyn Read + Send>);
-    }
-    let iv = box_try!(Iv::from_slice(&enc_info.iv));
-    let f = box_try!(File::open(file));
-    let r = box_try!(DecrypterReader::new(f, mthd, &enc_info.key, iv));
-    Ok(Box::new(r) as Box<dyn Read + Send>)
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -262,7 +203,7 @@ mod tests {
     fn test_cf_build_and_apply_plain_files() {
         let db_creaters = &[open_test_empty_db, open_test_db];
         for db_creater in db_creaters {
-            for db_opt in vec![None, Some(gen_db_options_with_encryption())] {
+            for db_opt in vec![None] {
                 let dir = Builder::new().prefix("test-snap-cf-db").tempdir().unwrap();
                 let db: KvTestEngine = db_creater(dir.path(), db_opt.clone(), None).unwrap();
                 // Collect keys via the key_callback into a collection.
@@ -279,7 +220,6 @@ mod tests {
                     let plain_file_path = snap_cf_dir.path().join("plain");
                     let stats = build_plain_cf_file::<KvTestEngine>(
                         plain_file_path.to_str().unwrap(),
-                        None,
                         &snap,
                         cf,
                         &keys::data_key(b"a"),
@@ -297,7 +237,6 @@ mod tests {
                     let detector = TestStaleDetector {};
                     apply_plain_cf_file(
                         plain_file_path.to_str().unwrap(),
-                        None,
                         &detector,
                         &db1,
                         cf,
@@ -341,7 +280,7 @@ mod tests {
         let db_creaters = &[open_test_empty_db, open_test_db];
         let limiter = Limiter::new(f64::INFINITY);
         for db_creater in db_creaters {
-            for db_opt in vec![None, Some(gen_db_options_with_encryption())] {
+            for db_opt in vec![None] {
                 let dir = Builder::new().prefix("test-snap-cf-db").tempdir().unwrap();
                 let db = db_creater(dir.path(), db_opt.clone(), None).unwrap();
 

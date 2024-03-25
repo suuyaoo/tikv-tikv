@@ -5,7 +5,6 @@ use std::io::Read;
 use std::path::PathBuf;
 
 use collections::HashSet;
-use encryption_export::EncryptionConfig;
 use grpcio::{ChannelCredentials, ChannelCredentialsBuilder};
 use security::SecurityConfig;
 
@@ -17,7 +16,6 @@ pub fn new_security_cfg(cn: Option<HashSet<String>>) -> SecurityConfig {
         key_path: format!("{}", p.join("data/key.pem").display()),
         override_ssl_target: "".to_owned(),
         cert_allowed_cn: cn.unwrap_or_default(),
-        encryption: EncryptionConfig::default(),
         redact_info_log: Some(true),
     }
 }

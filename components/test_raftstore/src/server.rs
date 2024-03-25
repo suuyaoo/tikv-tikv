@@ -24,7 +24,6 @@ use super::*;
 use crate::Config;
 use collections::{HashMap, HashSet};
 use concurrency_manager::ConcurrencyManager;
-use encryption_export::DataKeyManager;
 use engine_rocks::{RocksEngine, RocksSnapshot};
 use engine_traits::{Engines, MiscExt};
 use pd_client::PdClient;
@@ -240,7 +239,6 @@ impl Simulator for ServerCluster {
         mut cfg: Config,
         engines: Engines<RocksEngine, RocksEngine>,
         store_meta: Arc<Mutex<StoreMeta>>,
-        key_manager: Option<Arc<DataKeyManager>>,
         router: RaftRouter<RocksEngine, RocksEngine>,
         system: RaftBatchSystem<RocksEngine, RocksEngine>,
     ) -> ServerResult<u64> {
@@ -366,7 +364,6 @@ impl Simulator for ServerCluster {
                 SSTImporter::new(
                     &cfg.import,
                     dir,
-                    key_manager.clone(),
                     cfg.storage.api_version(),
                 )
                 .unwrap(),
@@ -388,7 +385,6 @@ impl Simulator for ServerCluster {
         let snap_mgr = SnapManagerBuilder::default()
             .max_write_bytes_per_sec(cfg.server.snap_max_write_bytes_per_sec.0 as i64)
             .max_total_size(cfg.server.snap_max_total_size.0)
-            .encryption_key_manager(key_manager)
             .build(tmp_str);
         self.snap_mgrs.insert(node_id, snap_mgr.clone());
         let server_cfg = Arc::new(VersionTrack::new(cfg.server.clone()));

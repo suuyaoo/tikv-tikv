@@ -101,7 +101,7 @@ impl RocksEngine {
         };
         let worker = Worker::new("engine-rocksdb");
         let mut db_opts = DBOptions::new();
-        db_opts.set_env(get_env(None /*key_manager*/, io_rate_limiter).unwrap());
+        db_opts.set_env(get_env(io_rate_limiter).unwrap());
         let db = Arc::new(engine_rocks::raw_util::new_engine(
             &path,
             Some(db_opts),
