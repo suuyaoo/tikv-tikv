@@ -9,7 +9,7 @@ failpoints = ["fail/failpoints"]
 test-cgroup = []
 
 [dependencies]
-nix = "0.19"
+nix = "0.23"
 async-speed-limit = "0.4.0"
 backtrace = "0.3.9"
 byteorder = "1.2"

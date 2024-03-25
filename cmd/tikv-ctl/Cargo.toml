@@ -48,10 +48,8 @@ keys = { path = "../../components/keys", default-features = false }
 libc = "0.2"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
 log_wrappers = { path = "../../components/log_wrappers" }
-nix = "0.19"
 pd_client = { path = "../../components/pd_client", default-features = false }
 prometheus = { version = "0.13", features = ["nightly"] }
-promptly = "0.3.0"
 protobuf = { version = "2.8", features = ["bytes"] }
 raft = { version = "0.6.0-alpha", default-features = false, features = ["protobuf-codec"] }
 raft_log_engine = { path = "../../components/raft_log_engine", default-features = false }
@@ -72,6 +70,3 @@ txn_types = { path = "../../components/txn_types", default-features = false }
 
 [build-dependencies]
 time = "0.1"
-
-[target.'cfg(unix)'.dependencies]
-signal = "0.6"
