@@ -106,7 +106,6 @@ procinfo = { git = "https://github.com/tikv/procinfo-rs", rev = "5125fc1a69496b7
 # of `real_blackbox` feature.
 criterion = "0.3"
 criterion-cpu-time = "0.1"
-arrow = "0.10"
 rand_xorshift = "0.3"
 engine_rocks = { path = "../components/engine_rocks", default-features = false }
 engine_traits = { path = "../components/engine_traits", default-features = false }
