@@ -74,7 +74,7 @@ fn get_poller_thread_ids() -> Vec<Pid> {
     let all_tids: Vec<_> = thread::thread_ids(pid).unwrap();
     for tid in all_tids {
         if let Ok(stat) = thread::full_thread_stat(pid, tid) {
-            if stat.command.starts_with(prefixs.0) || stat.command.starts_with(prefixs.1) {
+            if stat.comm.starts_with(prefixs.0) || stat.comm.starts_with(prefixs.1) {
                 poller_tids.push(tid);
             }
         }

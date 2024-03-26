@@ -10,7 +10,6 @@ use prometheus::{self, proto, GaugeVec, IntGaugeVec, Opts};
 
 use crate::sys::thread::{self, Pid};
 use crate::time::Instant;
-use procinfo::pid;
 
 /// Monitors threads of the current process.
 pub fn monitor_threads<S: Into<String>>(namespace: S) -> Result<()> {
@@ -143,7 +142,7 @@ impl Collector for ThreadsCollector {
                 // Threads CPU time.
                 let total = thread::linux::cpu_total(&stat);
                 // sanitize thread name before push metrics.
-                let name = sanitize_thread_name(tid, &stat.command);
+                let name = sanitize_thread_name(tid, &stat.comm);
                 let cpu_total = metrics
                     .cpu_totals
                     .get_metric_with_label_values(&[&name, &format!("{}", tid)])
@@ -153,43 +152,46 @@ impl Collector for ThreadsCollector {
                 // Threads states.
                 let state = metrics
                     .threads_state
-                    .get_metric_with_label_values(&[state_to_str(&stat.state)])
+                    .get_metric_with_label_values(&[&format!("{}", stat.state)])
                     .unwrap();
                 state.inc();
 
-                if let Ok(io) = pid::io_task(self.pid, tid) {
-                    let read_bytes = io.read_bytes;
-                    let write_bytes = io.write_bytes;
-                    // Threads IO.
-                    let read_total = metrics
-                        .io_totals
-                        .get_metric_with_label_values(&[&name, &format!("{}", tid), "read"])
-                        .unwrap();
-                    read_total.set(read_bytes as f64);
+                if let Ok(task) = procfs::process::Task::new(self.pid, tid) {
+                    if let Ok(io) = task.io() {
+                        let read_bytes = io.read_bytes;
+                        let write_bytes = io.write_bytes;
+                        // Threads IO.
+                        let read_total = metrics
+                            .io_totals
+                            .get_metric_with_label_values(&[&name, &format!("{}", tid), "read"])
+                            .unwrap();
+                        read_total.set(read_bytes as f64);
 
-                    let write_total = metrics
-                        .io_totals
-                        .get_metric_with_label_values(&[&name, &format!("{}", tid), "write"])
-                        .unwrap();
-                    write_total.set(write_bytes as f64);
-                }
+                        let write_total = metrics
+                            .io_totals
+                            .get_metric_with_label_values(&[&name, &format!("{}", tid), "write"])
+                            .unwrap();
+                        write_total.set(write_bytes as f64);
+                    }
 
-                if let Ok(status) = pid::status_task(self.pid, tid) {
-                    // Thread voluntary context switches.
-                    let voluntary_ctxt_switches = status.voluntary_ctxt_switches;
-                    let voluntary_total = metrics
-                        .voluntary_ctxt_switches
-                        .get_metric_with_label_values(&[&name, &format!("{}", tid)])
-                        .unwrap();
-                    voluntary_total.set(voluntary_ctxt_switches as i64);
-
-                    // Thread nonvoluntary context switches.
-                    let nonvoluntary_ctxt_switches = status.nonvoluntary_ctxt_switches;
-                    let nonvoluntary_total = metrics
-                        .nonvoluntary_ctxt_switches
-                        .get_metric_with_label_values(&[&name, &format!("{}", tid)])
-                        .unwrap();
-                    nonvoluntary_total.set(nonvoluntary_ctxt_switches as i64);
+                    if let Ok(status) = task.status() {
+                        // Thread voluntary context switches.
+                        if let Some(voluntary_ctxt_switches) = status.voluntary_ctxt_switches {
+                            let voluntary_total = metrics
+                                .voluntary_ctxt_switches
+                                .get_metric_with_label_values(&[&name, &format!("{}", tid)])
+                                .unwrap();
+                            voluntary_total.set(voluntary_ctxt_switches as i64);
+                        }
+                        // Thread nonvoluntary context switches.
+                        if let Some(nonvoluntary_ctxt_switches) = status.nonvoluntary_ctxt_switches {
+                            let nonvoluntary_total = metrics
+                                .nonvoluntary_ctxt_switches
+                                .get_metric_with_label_values(&[&name, &format!("{}", tid)])
+                                .unwrap();
+                            nonvoluntary_total.set(nonvoluntary_ctxt_switches as i64);
+                        }
+                    }
                 }
             }
         }
@@ -233,22 +235,6 @@ fn sanitize_thread_name(tid: Pid, raw: &str) -> String {
         name = format!("{}", tid)
     }
     name
-}
-
-fn state_to_str(state: &pid::State) -> &str {
-    match state {
-        pid::State::Running => "R",
-        pid::State::Sleeping => "S",
-        pid::State::Waiting => "D",
-        pid::State::Zombie => "Z",
-        pid::State::Stopped => "T",
-        pid::State::TraceStopped => "t",
-        pid::State::Paging => "W",
-        pid::State::Dead => "X",
-        pid::State::Wakekill => "K",
-        pid::State::Waking => "W",
-        pid::State::Parked => "P",
-    }
 }
 
 fn to_io_err(s: String) -> Error {
@@ -352,7 +338,7 @@ impl ThreadInfoStatistics {
             let tid = *tid;
 
             if let Ok(stat) = thread::full_thread_stat(self.pid, tid) {
-                let name = get_name(&stat.command);
+                let name = get_name(&stat.comm);
                 self.tid_names.entry(tid).or_insert(name);
 
                 // To get a percentage result,
@@ -366,26 +352,28 @@ impl ThreadInfoStatistics {
                     time_delta,
                 );
 
-                if let Ok(io) = pid::io_task(self.pid, tid) {
-                    // Threads IO.
-                    let read_bytes = io.read_bytes;
-                    let write_bytes = io.write_bytes;
+                if let Ok(task) = procfs::process::Task::new(self.pid, tid) {
+                    if let Ok(io) = task.io() {
+                        // Threads IO.
+                        let read_bytes = io.read_bytes;
+                        let write_bytes = io.write_bytes;
 
-                    update_metric(
-                        &mut self.metrics_total.read_ios,
-                        &mut self.metrics_rate.read_ios,
-                        tid,
-                        read_bytes as f64,
-                        time_delta,
-                    );
+                        update_metric(
+                            &mut self.metrics_total.read_ios,
+                            &mut self.metrics_rate.read_ios,
+                            tid,
+                            read_bytes as f64,
+                            time_delta,
+                        );
 
-                    update_metric(
-                        &mut self.metrics_total.write_ios,
-                        &mut self.metrics_rate.write_ios,
-                        tid,
-                        write_bytes as f64,
-                        time_delta,
-                    );
+                        update_metric(
+                            &mut self.metrics_total.write_ios,
+                            &mut self.metrics_rate.write_ios,
+                            tid,
+                            write_bytes as f64,
+                            time_delta,
+                        );
+                    }
                 }
             }
         }
@@ -499,16 +487,20 @@ mod tests {
         tids.iter()
             .find(|t| {
                 thread::full_thread_stat(pid, **t)
-                    .map(|stat| stat.command == name)
+                    .map(|stat| stat.comm == name)
                     .unwrap_or(false)
             })
             .unwrap();
 
         tids.iter()
             .find(|t| {
-                pid::io_task(pid, **t)
-                    .map(|io| io.write_bytes == page_size)
-                    .unwrap_or(false)
+                if let Ok(task) = procfs::process::Task::new(pid, **t) {
+                    task.io()
+                        .map(|io| io.write_bytes == page_size as u64)
+                        .unwrap_or(false)
+                } else {
+                    false
+                }
             })
             .unwrap();
 
@@ -568,7 +560,7 @@ mod tests {
         let tids: Vec<_> = thread::thread_ids(pid).unwrap();
         for tid in tids {
             if let Ok(stat) = thread::full_thread_stat(pid, tid) {
-                if stat.command.starts_with(s1) {
+                if stat.comm.starts_with(s1) {
                     rx1.recv().unwrap();
                     thread_info.record();
                     {
@@ -642,12 +634,12 @@ mod tests {
         let tids: Vec<_> = thread::thread_ids(pid).unwrap();
         for tid in tids {
             if let Ok(stat) = thread::full_thread_stat(pid, tid) {
-                if stat.command.starts_with(tn) {
+                if stat.comm.starts_with(tn) {
                     rx.recv().unwrap();
                     thread_info.record();
 
                     let mut cpu_usages = thread_info.get_cpu_usages();
-                    let cpu_usage = cpu_usages.entry(stat.command).or_insert(0);
+                    let cpu_usage = cpu_usages.entry(stat.comm).or_insert(0);
                     assert!(*cpu_usage < 110); // Consider the error of statistics
                     if *cpu_usage < 50 {
                         panic!("the load must be heavy than 0.5, but got {}", *cpu_usage);

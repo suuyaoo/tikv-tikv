@@ -32,7 +32,7 @@ fn cpu_total(sys_time: i64, user_time: i64) -> f64 {
 pub mod linux {
     #[inline]
     pub fn cpu_total(stat: &super::FullStat) -> f64 {
-        super::cpu_total(stat.stime, stat.utime)
+        super::cpu_total(stat.stime as i64, stat.utime as i64)
     }
 }
 
@@ -44,7 +44,7 @@ mod imp {
     use std::iter::FromIterator;
 
     pub use libc::pid_t as Pid;
-    pub use procinfo::pid::{self, Stat as FullStat};
+    pub use procfs::process::{self, Stat as FullStat};
 
     lazy_static::lazy_static! {
         // getconf CLK_TCK
@@ -109,7 +109,21 @@ mod imp {
     }
 
     pub fn full_thread_stat(pid: Pid, tid: Pid) -> io::Result<FullStat> {
-        pid::stat_task(pid, tid)
+        match procfs::process::Task::new(pid, tid) {
+            Ok(task) => {
+                match task.stat() {
+                    Ok(stat) => {
+                        Ok(stat)
+                    }
+                    Err(e) => {
+                        return Err(proc_to_io_err(e))
+                    }
+                }
+            }
+            Err(e) => {
+                return Err(proc_to_io_err(e))
+            }
+        }
     }
 
     pub fn set_priority(pri: i32) -> io::Result<()> {
@@ -153,6 +167,15 @@ mod imp {
         // Unsafe due to FFI.
         unsafe {
             *errno_location() = 0;
+        }
+    }
+
+    fn proc_to_io_err(e: procfs::ProcError) -> io::Error {
+        match e {
+            procfs::ProcError::PermissionDenied(_) => io::Error::new(io::ErrorKind::PermissionDenied, format!("{}", e)),
+            procfs::ProcError::NotFound(_) => io::Error::new(io::ErrorKind::NotFound, format!("{}", e)),
+            procfs::ProcError::Io(inner, _) => inner,
+            _ => io::Error::new(io::ErrorKind::Other, format!("{}", e)),
         }
     }
 

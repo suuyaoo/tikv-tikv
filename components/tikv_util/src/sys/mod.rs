@@ -98,8 +98,9 @@ pub fn get_global_memory_usage() -> u64 {
 /// Record the current global memory usage of the process.
 #[cfg(target_os = "linux")]
 pub fn record_global_memory_usage() {
-    let s = procinfo::pid::statm_self().unwrap();
-    let usage = s.resident * page_size::get();
+    let proc = procfs::process::Process::myself().unwrap();
+    let s = proc.statm().unwrap();
+    let usage = s.resident * page_size::get() as u64;
     GLOBAL_MEMORY_USAGE.store(usage as u64, Ordering::Release);
 }
 

@@ -35,7 +35,7 @@ impl ThreadLoadStatistics {
         let mut loads = thread_loads.stats.lock();
         for tid in all_tids {
             if let Ok(stat) = thread::full_thread_stat(pid, tid) {
-                if !stat.command.starts_with(prefix) {
+                if !stat.comm.starts_with(prefix) {
                     continue;
                 }
                 loads.entry(tid).or_default();
