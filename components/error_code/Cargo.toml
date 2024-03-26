@@ -18,4 +18,3 @@ raft = { version = "0.6.0-alpha", default-features = false, features = ["protobu
 kvproto = { git = "https://github.com/pingcap/kvproto.git" }
 tikv_alloc = { path = "../tikv_alloc" }
 grpcio = { version = "0.9",  default-features = false, features = ["openssl-vendored", "protobuf-codec"] }
-serde = { version = "1.0", features = ["derive"] }
