@@ -1721,33 +1721,17 @@ dependencies = [
 [[package]]
 name = "librocksdb_sys"
 version = "0.1.0"
-source = "git+https://github.com/tikv/rust-rocksdb.git?branch=tikv-5.4#7641ef513d6b06c18f8354f13e08ee552ff6ae5d"
+source = "git+https://github.com/suuyaoo/rust-rocksdb?branch=tikv-5.4#52b0b6c1bfa858286b32c96ad52b7997706e422a"
 dependencies = [
  "bindgen",
  "bzip2-sys",
  "cc",
  "cmake",
  "libc",
- "libtitan_sys",
  "libz-sys",
  "lz4-sys",
  "snappy-sys",
  "tikv-jemalloc-sys",
- "zstd-sys",
-]
-
-[[package]]
-name = "libtitan_sys"
-version = "0.0.1"
-source = "git+https://github.com/tikv/rust-rocksdb.git?branch=tikv-5.4#7641ef513d6b06c18f8354f13e08ee552ff6ae5d"
-dependencies = [
- "bzip2-sys",
- "cc",
- "cmake",
- "libc",
- "libz-sys",
- "lz4-sys",
- "snappy-sys",
  "zstd-sys",
 ]
 
@@ -2942,7 +2926,7 @@ checksum = "2089e4031214d129e201f8c3c8c2fe97cd7322478a0d1cdf78e7029b0042efdb"
 [[package]]
 name = "rocksdb"
 version = "0.3.0"
-source = "git+https://github.com/tikv/rust-rocksdb.git?branch=tikv-5.4#7641ef513d6b06c18f8354f13e08ee552ff6ae5d"
+source = "git+https://github.com/suuyaoo/rust-rocksdb?branch=tikv-5.4#52b0b6c1bfa858286b32c96ad52b7997706e422a"
 dependencies = [
  "libc",
  "librocksdb_sys",
