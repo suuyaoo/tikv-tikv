@@ -1115,16 +1115,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fs2"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9564fc758e15025b46aa6643b1b77d047d1a56a1aea6e01002ac0c7026876213"
-dependencies = [
- "libc",
- "winapi",
-]
-
-[[package]]
 name = "fs_extra"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2601,13 +2591,12 @@ dependencies = [
 [[package]]
 name = "raft-engine"
 version = "0.1.0"
-source = "git+https://github.com/tikv/raft-engine?branch=master#cc0fa30612c7f8e849436681a468996d1624682a"
+source = "git+https://github.com/suuyaoo/raft-engine?branch=tikv-5.4#e87a8b71523411a10f38014b68492aad9fd8a938"
 dependencies = [
  "byteorder",
  "crc32fast",
  "crossbeam",
  "fail",
- "fs2",
  "hashbrown",
  "hex",
  "lazy_static",
