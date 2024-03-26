@@ -445,6 +445,74 @@ pub fn reserve_space_for_recover<P: AsRef<Path>>(data_dir: P, file_size: u64) ->
     }
 }
 
+/// `FsStats` contains some common stats about a file system.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct FsStats {
+    free_space: u64,
+    available_space: u64,
+    total_space: u64,
+    allocation_granularity: u64,
+}
+
+impl FsStats {
+    /// Returns the number of free bytes in the file system containing the provided
+    /// path.
+    pub fn free_space(&self) -> u64 {
+        self.free_space
+    }
+
+    /// Returns the available space in bytes to non-priveleged users in the file
+    /// system containing the provided path.
+    pub fn available_space(&self) -> u64 {
+        self.available_space
+    }
+
+    /// Returns the total space in bytes in the file system containing the provided
+    /// path.
+    pub fn total_space(&self) -> u64 {
+        self.total_space
+    }
+
+    /// Returns the filesystem's disk space allocation granularity in bytes.
+    /// The provided path may be for any file in the filesystem.
+    ///
+    /// On Posix, this is equivalent to the filesystem's block size.
+    /// On Windows, this is equivalent to the filesystem's cluster size.
+    pub fn allocation_granularity(&self) -> u64 {
+        self.allocation_granularity
+    }
+}
+
+fn sys_statvfs(path: &Path) -> io::Result<FsStats> {
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+
+    let cstr = match CString::new(path.as_os_str().as_bytes()) {
+        Ok(cstr) => cstr,
+        Err(..) => return Err(io::Error::new(io::ErrorKind::InvalidInput, "path contained a null")),
+    };
+
+    unsafe {
+        let mut stat: libc::statvfs = std::mem::zeroed();
+        // danburkert/fs2-rs#1: cast is necessary for platforms where c_char != u8.
+        if libc::statvfs(cstr.as_ptr() as *const _, &mut stat) != 0 {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(FsStats {
+                free_space: stat.f_frsize as u64 * stat.f_bfree as u64,
+                available_space: stat.f_frsize as u64 * stat.f_bavail as u64,
+                total_space: stat.f_frsize as u64 * stat.f_blocks as u64,
+                allocation_granularity: stat.f_frsize as u64,
+            })
+        }
+    }
+}
+
+/// Get the stats of the file system containing the provided path.
+pub fn statvfs<P>(path: P) -> io::Result<FsStats> where P: AsRef<Path> {
+    sys_statvfs(path.as_ref())
+}
+
 #[cfg(test)]
 mod tests {
     use rand::distributions::Alphanumeric;

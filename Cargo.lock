@@ -1036,7 +1036,6 @@ dependencies = [
  "collections",
  "crc32fast",
  "crossbeam-utils",
- "fs2",
  "lazy_static",
  "libc",
  "maligned",
@@ -1118,7 +1117,8 @@ dependencies = [
 [[package]]
 name = "fs2"
 version = "0.4.3"
-source = "git+https://github.com/tabokie/fs2-rs?branch=tikv#cd503764a19a99d74c1ab424dd13d6bcd093fcae"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9564fc758e15025b46aa6643b1b77d047d1a56a1aea6e01002ac0c7026876213"
 dependencies = [
  "libc",
  "winapi",
@@ -2677,7 +2677,6 @@ dependencies = [
  "error_code",
  "fail",
  "file_system",
- "fs2",
  "futures 0.3.27",
  "futures-util",
  "grpcio-health",
@@ -3217,7 +3216,6 @@ dependencies = [
  "engine_traits",
  "error_code",
  "file_system",
- "fs2",
  "futures 0.3.27",
  "grpcio",
  "grpcio-health",

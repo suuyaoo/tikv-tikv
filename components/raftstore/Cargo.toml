@@ -32,7 +32,6 @@ error_code = { path = "../error_code", default-features = false }
 fail = "0.5"
 openssl = "0.10"
 file_system = { path = "../file_system", default-features = false }
-fs2 = "0.4"
 futures = "0.3"
 futures-util = { version = "0.3.1", default-features = false, features = ["io"] }
 grpcio-health = { version = "0.9", default-features = false, features = ["protobuf-codec"] }

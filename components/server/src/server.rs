@@ -410,7 +410,7 @@ impl<ER: RaftEngine> TiKVServer<ER> {
         // We truncate a big file to make sure that both raftdb and kvdb of TiKV have enough space
         // to do compaction and region migration when TiKV recover. This file is created in
         // data_dir rather than db_path, because we must not increase store size of db_path.
-        let disk_stats = fs2::statvfs(&self.config.storage.data_dir).unwrap();
+        let disk_stats = file_system::statvfs(&self.config.storage.data_dir).unwrap();
         let mut capacity = disk_stats.total_space();
         if self.config.raft_store.capacity.0 > 0 {
             capacity = cmp::min(capacity, self.config.raft_store.capacity.0);
@@ -1091,7 +1091,7 @@ impl<ER: RaftEngine> TiKVServer<ER> {
         let already_full_threshold = reserve_space / 2;
         self.background_worker
             .spawn_interval_task(DEFAULT_STORAGE_STATS_INTERVAL, move || {
-                let disk_stats = match fs2::statvfs(&store_path) {
+                let disk_stats = match file_system::statvfs(&store_path) {
                     Err(e) => {
                         error!(
                             "get disk stat for kv store failed";

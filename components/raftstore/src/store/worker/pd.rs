@@ -937,7 +937,7 @@ where
         store_info: StoreInfo<EK, ER>,
         send_detailed_report: bool,
     ) {
-        let disk_stats = match fs2::statvfs(store_info.kv_engine.path()) {
+        let disk_stats = match file_system::statvfs(store_info.kv_engine.path()) {
             Err(e) => {
                 error!(
                     "get disk stat for rocksdb failed";

@@ -1,5 +1,7 @@
 // Copyright 2020 TiKV Project Authors. Licensed under Apache-2.0.
 
+extern crate libc;
+
 use super::{get_io_rate_limiter, get_io_type, IOOp, IORateLimiter};
 
 use std::fmt::{self, Debug, Formatter};
@@ -7,8 +9,7 @@ use std::fs;
 use std::io::{self, Read, Seek, Write};
 use std::path::Path;
 use std::sync::Arc;
-
-use fs2::FileExt;
+use std::os::unix::io::{AsRawFd, FromRawFd};
 
 /// A wrapper around `std::fs::File` with capability to track and regulate IO flow.
 pub struct File {
@@ -145,41 +146,57 @@ impl Write for File {
     }
 }
 
-/// fs2::FileExt
 impl File {
     pub fn duplicate(&self) -> io::Result<File> {
-        Ok(File {
-            inner: self.inner.duplicate()?,
-            limiter: get_io_rate_limiter(),
-        })
+        unsafe {
+            let fd = libc::dup(self.inner.as_raw_fd());
+    
+            if fd < 0 {
+                Err(io::Error::last_os_error())
+            } else {
+                File::from_raw_file(fs::File::from_raw_fd(fd))
+            }
+        }
     }
 
     pub fn allocated_size(&self) -> io::Result<u64> {
-        self.inner.allocated_size()
+        use std::os::unix::fs::MetadataExt;
+        self.inner.metadata().map(|m| m.blocks() as u64 * 512)
     }
 
     pub fn allocate(&self, len: u64) -> io::Result<()> {
-        self.inner.allocate(len)
+        let ret = unsafe { libc::posix_fallocate(self.inner.as_raw_fd(), 0 /*offset*/, len as libc::off_t) };
+        if ret == 0 { Ok(()) } else { Err(io::Error::from_raw_os_error(ret)) }
     }
 
     pub fn lock_shared(&self) -> io::Result<()> {
-        self.inner.lock_shared()
+        let flag = libc::LOCK_SH;
+        let ret = unsafe { libc::flock(self.inner.as_raw_fd(), flag) };
+        if ret < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
     }
 
     pub fn lock_exclusive(&self) -> io::Result<()> {
-        self.inner.lock_exclusive()
+        let flag = libc::LOCK_EX;
+        let ret = unsafe { libc::flock(self.inner.as_raw_fd(), flag) };
+        if ret < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
     }
 
     pub fn try_lock_shared(&self) -> io::Result<()> {
-        self.inner.try_lock_shared()
+        let flag = libc::LOCK_SH | libc::LOCK_NB;
+        let ret = unsafe { libc::flock(self.inner.as_raw_fd(), flag) };
+        if ret < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
     }
 
     pub fn try_lock_exclusive(&self) -> io::Result<()> {
-        self.inner.try_lock_exclusive()
+        let flag = libc::LOCK_EX | libc::LOCK_NB;
+        let ret = unsafe { libc::flock(self.inner.as_raw_fd(), flag) };
+        if ret < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
     }
 
     pub fn unlock(&self) -> io::Result<()> {
-        self.inner.unlock()
+        let flag = libc::LOCK_UN;
+        let ret = unsafe { libc::flock(self.inner.as_raw_fd(), flag) };
+        if ret < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
     }
 }
 

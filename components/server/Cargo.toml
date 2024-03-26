@@ -36,7 +36,6 @@ engine_rocks = { path = "../engine_rocks", default-features = false }
 engine_traits = { path = "../engine_traits", default-features = false }
 error_code = { path = "../error_code", default-features = false }
 file_system = { path = "../file_system", default-features = false }
-fs2 = "0.4"
 futures = "0.3"
 tokio = { version = "1.5", features = ["rt-multi-thread"] }
 grpcio = { version = "0.9", default-features = false, features = ["openssl-vendored"] }
