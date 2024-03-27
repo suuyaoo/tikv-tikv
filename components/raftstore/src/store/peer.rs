@@ -3967,6 +3967,7 @@ where
                     region_id: region.get_id(),
                     peer_id: self.peer_id(),
                     safe_ts,
+                    read_ts,
                 });
                 cmd_resp::bind_term(&mut response, self.term());
                 return ReadResponse {

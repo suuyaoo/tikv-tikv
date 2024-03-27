@@ -72,6 +72,7 @@ pub enum Error {
         region_id: u64,
         peer_id: u64,
         safe_ts: u64,
+        read_ts: u64,
     },
 
     #[error("{0:?}")]
@@ -218,11 +219,13 @@ impl From<Error> for errorpb::Error {
                 region_id,
                 peer_id,
                 safe_ts,
+                read_ts,
             } => {
                 let mut e = errorpb::DataIsNotReady::default();
                 e.set_region_id(region_id);
                 e.set_peer_id(peer_id);
                 e.set_safe_ts(safe_ts);
+                e.set_read_ts(read_ts);
                 errorpb.set_data_is_not_ready(e);
             }
             Error::RegionNotInitialized(region_id) => {
