@@ -1114,12 +1114,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fs_extra"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f2a4a2034423744d2cc7ca2068453168dcdb82c438419e639a26bd87839c674"
-
-[[package]]
 name = "futures"
 version = "0.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1721,7 +1715,7 @@ dependencies = [
 [[package]]
 name = "librocksdb_sys"
 version = "0.1.0"
-source = "git+https://github.com/suuyaoo/rust-rocksdb?branch=tikv-5.4#528138c1da10914bcb1976de8682d459496bf2da"
+source = "git+https://github.com/suuyaoo/rust-rocksdb?branch=tikv-5.4#1b1517e3902424aa82e8998eb749cc39877a7514"
 dependencies = [
  "bindgen",
  "bzip2-sys",
@@ -2926,7 +2920,7 @@ checksum = "2089e4031214d129e201f8c3c8c2fe97cd7322478a0d1cdf78e7029b0042efdb"
 [[package]]
 name = "rocksdb"
 version = "0.3.0"
-source = "git+https://github.com/suuyaoo/rust-rocksdb?branch=tikv-5.4#528138c1da10914bcb1976de8682d459496bf2da"
+source = "git+https://github.com/suuyaoo/rust-rocksdb?branch=tikv-5.4#1b1517e3902424aa82e8998eb749cc39877a7514"
 dependencies = [
  "libc",
  "librocksdb_sys",
@@ -3306,18 +3300,18 @@ dependencies = [
 
 [[package]]
 name = "snmalloc-rs"
-version = "0.2.27"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f5a6194d59b08fc87381e7c8a04ab4ab9967282b00f409bb742e08f3514ed0b"
+checksum = "dc157dd2183548a4b4b0b428d59efbb527b19360a678b632842fe3fcfb2c30f9"
 dependencies = [
  "snmalloc-sys",
 ]
 
 [[package]]
 name = "snmalloc-sys"
-version = "0.2.27"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9518813a25ab2704a6df4968f609aa6949705409b6a854dcc87018d12961cbc8"
+checksum = "0761b83013b42a16bab6c3bd5a68e80b1a54f7af9e68e40f00e017489821e8fa"
 dependencies = [
  "cmake",
 ]
@@ -3919,9 +3913,9 @@ dependencies = [
 
 [[package]]
 name = "tikv-jemalloc-ctl"
-version = "0.4.2"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb833c46ecbf8b6daeccb347cefcabf9c1beb5c9b0f853e1cec45632d9963e69"
+checksum = "619bfed27d807b54f7f776b9430d4f8060e66ee138a28632ca898584d462c31c"
 dependencies = [
  "libc",
  "paste",
@@ -3930,20 +3924,19 @@ dependencies = [
 
 [[package]]
 name = "tikv-jemalloc-sys"
-version = "0.4.3+5.2.1-patched.2"
+version = "0.5.4+5.3.0-patched"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1792ccb507d955b46af42c123ea8863668fae24d03721e40cad6a41773dbb49"
+checksum = "9402443cb8fd499b6f327e40565234ff34dbda27460c5b47db0db77443dd85d1"
 dependencies = [
  "cc",
- "fs_extra",
  "libc",
 ]
 
 [[package]]
 name = "tikv-jemallocator"
-version = "0.4.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5b7bcecfafe4998587d636f9ae9d55eb9d0499877b88757767c346875067098"
+checksum = "965fe0c26be5c56c94e38ba547249074803efd52adfb66de62107d95aab3eaca"
 dependencies = [
  "libc",
  "tikv-jemalloc-sys",
