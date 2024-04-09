@@ -1180,7 +1180,7 @@ impl TestPdClient {
     pub fn switch_replication_mode(&self, state: DrAutoSyncState) {
         let mut cluster = self.cluster.wl();
         let status = cluster.replication_status.as_mut().unwrap();
-        let mut dr = status.mut_dr_auto_sync();
+        let dr = status.mut_dr_auto_sync();
         dr.state_id += 1;
         dr.set_state(state);
     }

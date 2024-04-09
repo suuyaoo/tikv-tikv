@@ -83,10 +83,8 @@ impl fmt::Debug for Task {
     }
 }
 
-#[derive(Clone)]
 struct LimitedStorage {
     limiter: Limiter,
-    storage: Arc<dyn ExternalStorage>,
 }
 
 impl Task {
@@ -788,7 +786,6 @@ impl<E: Engine, R: RegionInfoProvider + Clone + 'static> Endpoint<E, R> {
             let storage_name = backend.name();
             let storage = LimitedStorage {
                 limiter: request.limiter,
-                storage: backend,
             };
 
             loop {
@@ -824,7 +821,7 @@ impl<E: Engine, R: RegionInfoProvider + Clone + 'static> Endpoint<E, R> {
                 for brange in batch {
                     // wake up the scheduler for each loop for awaking tasks waiting for some lock or channels.
                     // because the softlimit permit is held by current task, there isn't risk of being suspended for long time.
-                    tokio::task::yield_now().await;
+                    let _ = tokio::task::yield_now().await;
                     let engine = engine.clone();
                     if request.cancel.load(Ordering::SeqCst) {
                         warn!("backup task has canceled"; "range" => ?brange);

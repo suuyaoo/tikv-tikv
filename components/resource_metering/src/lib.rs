@@ -2,8 +2,8 @@
 
 // TODO(mornyx): crate doc.
 
-#![feature(shrink_to)]
-#![feature(hash_drain_filter)]
+#![feature(hash_extract_if)]
+#![allow(internal_features)]
 #![feature(core_intrinsics)]
 
 use std::intrinsics::unlikely;

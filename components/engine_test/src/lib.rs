@@ -183,13 +183,11 @@ pub mod ctor {
 
     #[derive(Clone)]
     pub struct DBOptions {
-        encryption: CryptoOptions,
     }
 
     impl DBOptions {
         pub fn new() -> DBOptions {
             DBOptions {
-                encryption: CryptoOptions::None,
             }
         }
     }

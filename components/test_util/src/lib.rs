@@ -18,7 +18,6 @@ use std::{env, thread};
 
 pub use crate::kv_generator::*;
 pub use crate::logging::*;
-pub use crate::macros::*;
 pub use crate::runner::{
     clear_failpoints, run_failpoint_tests, run_test_with_hook, run_tests, TestHook,
 };

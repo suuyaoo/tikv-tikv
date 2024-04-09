@@ -229,7 +229,7 @@ impl TestSuite {
 
     pub fn nonblock_receiver_all(&self) -> HashMap<String, (Vec<u64>, Vec<u32>)> {
         let mut res = HashMap::new();
-        for r in self.rx.try_recv() {
+        if let Ok(r) = self.rx.try_recv() {
             Self::merge_records(&mut res, r);
         }
         res

@@ -494,7 +494,7 @@ where
     }
 
     // Tracking or untracking locks with incoming commands that corresponding observe id is valid.
-    #[allow(clippy::drop_ref)]
+    #[allow(dropping_references)]
     fn handle_change_log(
         &mut self,
         cmd_batch: Vec<CmdBatch>,
