@@ -1646,7 +1646,7 @@ dependencies = [
 [[package]]
 name = "kvproto"
 version = "0.0.2"
-source = "git+https://github.com/suuyaoo/tikv-kvproto?branch=release-5.4#47729ada6d3fc72111654193e0cd715207ff9255"
+source = "git+https://github.com/suuyaoo/tikv-kvproto?branch=release-5.4#40786da7422c910620a77c6a1f0388a2defcc812"
 dependencies = [
  "futures 0.3.27",
  "grpcio",
