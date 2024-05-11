@@ -1407,6 +1407,9 @@ where
     ) {
         let pd_client = self.pd_client.clone();
         let concurrency_manager = self.concurrency_manager.clone();
+        let log_interval = Duration::from_secs(30);
+        let mut last_log_ts = Instant::now().checked_sub(log_interval).unwrap();
+
         let f = async move {
             let mut success = false;
             while txn_ext.max_ts_sync_status.load(Ordering::SeqCst) == initial_status {
@@ -1426,10 +1429,14 @@ where
                         break;
                     }
                     Err(e) => {
-                        warn!(
-                            "failed to update max timestamp for region {}: {:?}",
-                            region_id, e
-                        );
+                        if last_log_ts.elapsed() > log_interval {
+                            warn!(
+                                "failed to update max timestamp for region";
+                                "region_id" => region_id,
+                                "error" => ?e
+                            );
+                            last_log_ts = Instant::now();
+                        }
                     }
                 }
             }
