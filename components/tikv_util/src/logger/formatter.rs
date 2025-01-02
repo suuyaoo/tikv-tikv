@@ -45,7 +45,7 @@ where
 #[inline]
 fn need_json_encode(bytes: &[u8]) -> bool {
     for &byte in bytes {
-        if byte <= 0x20 || byte == 0x22 || byte == 0x3D || byte == 0x5B || byte == 0x5D {
+        if byte < 0x20 || byte == 0x22 || byte == 0x3D || byte == 0x5B || byte == 0x5D {
             return true;
         }
     }

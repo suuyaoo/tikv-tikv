@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 use std::thread;
+use std::process;
 
 use log::{self, SetLoggerError};
 use slog::{self, slog_o, Drain, FnValue, Key, OwnedKVList, PushFnValue, Record, KV};
@@ -27,7 +28,7 @@ const SLOG_CHANNEL_SIZE: usize = 10240;
 // Default is DropAndReport.
 // It is not desirable to have dropped logs in our use case.
 const SLOG_CHANNEL_OVERFLOW_STRATEGY: OverflowStrategy = OverflowStrategy::Drop;
-const TIMESTAMP_FORMAT: &str = "%Y/%m/%d %H:%M:%S%.3f %:z";
+const TIMESTAMP_FORMAT: &str = "%Y-%m-%d %H:%M:%S%.6f %:z";
 
 static LOG_LEVEL: AtomicUsize = AtomicUsize::new(usize::max_value());
 
@@ -251,12 +252,12 @@ pub fn get_string_by_level(lv: Level) -> &'static str {
 // Converts `slog::Level` to unified log level format.
 fn get_unified_log_level(lv: Level) -> &'static str {
     match lv {
-        Level::Critical => "FATAL",
-        Level::Error => "ERROR",
-        Level::Warning => "WARN",
-        Level::Info => "INFO",
-        Level::Debug => "DEBUG",
-        Level::Trace => "TRACE",
+        Level::Critical => "critical",
+        Level::Error => "error",
+        Level::Warning => "warning",
+        Level::Info => "info",
+        Level::Debug => "debug",
+        Level::Trace => "trace",
     }
 }
 
@@ -541,6 +542,9 @@ fn write_log_header(
     decorator.start_whitespace()?;
     write!(decorator, " ")?;
 
+    decorator.start_whitespace()?;
+    write!(decorator, "[{}] [{}]", process::id(), nix::unistd::gettid())?;
+
     decorator.start_level()?;
     write!(decorator, "[{}]", get_unified_log_level(record.level()))?;
 
@@ -569,10 +573,7 @@ fn write_log_msg(decorator: &mut dyn RecordDecorator, record: &Record<'_>) -> io
     write!(decorator, " ")?;
 
     decorator.start_msg()?;
-    write!(decorator, "[")?;
-    let msg = format!("{}", record.msg());
-    formatter::write_escaped_str(decorator, &msg)?;
-    write!(decorator, "]")?;
+    write!(decorator, "{}", record.msg())?;
 
     Ok(())
 }
@@ -903,12 +904,12 @@ mod tests {
 
     #[test]
     fn test_get_unified_log_level() {
-        assert_eq!("FATAL", get_unified_log_level(Level::Critical));
-        assert_eq!("ERROR", get_unified_log_level(Level::Error));
-        assert_eq!("WARN", get_unified_log_level(Level::Warning));
-        assert_eq!("INFO", get_unified_log_level(Level::Info));
-        assert_eq!("DEBUG", get_unified_log_level(Level::Debug));
-        assert_eq!("TRACE", get_unified_log_level(Level::Trace));
+        assert_eq!("critical", get_unified_log_level(Level::Critical));
+        assert_eq!("error", get_unified_log_level(Level::Error));
+        assert_eq!("warning", get_unified_log_level(Level::Warning));
+        assert_eq!("info", get_unified_log_level(Level::Info));
+        assert_eq!("debug", get_unified_log_level(Level::Debug));
+        assert_eq!("trace", get_unified_log_level(Level::Trace));
     }
 
     thread_local! {
