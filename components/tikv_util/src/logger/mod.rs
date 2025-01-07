@@ -545,6 +545,9 @@ fn write_log_header(
     decorator.start_whitespace()?;
     write!(decorator, "[{}] [{}]", process::id(), nix::unistd::gettid())?;
 
+    decorator.start_whitespace()?;
+    write!(decorator, " ")?;
+
     decorator.start_level()?;
     write!(decorator, "[{}]", get_unified_log_level(record.level()))?;
 
