@@ -10,7 +10,7 @@ mod imp {
         iterator::Signals,
     };
     use tikv_util::metrics;
-    use tikv_util::logger::set_log_rotate_signaled;
+    use tikv_util::logger::set_log_reopen_signaled;
 
     #[allow(dead_code)]
     pub fn wait_for_signal(engines: Option<Engines<impl KvEngine, impl RaftEngine>>) {
@@ -22,8 +22,8 @@ mod imp {
                     break;
                 }
                 SIGHUP => {
-                    info!("receive signal {}, rotating log...", signal);
-                    set_log_rotate_signaled(true)
+                    info!("receive signal {}, reopening log...", signal);
+                    set_log_reopen_signaled(true)
                 }
                 SIGUSR1 => {
                     // Use SIGUSR1 to log metrics.

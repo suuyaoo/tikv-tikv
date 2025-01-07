@@ -17,7 +17,7 @@ use slog::{self, slog_o, Drain, FnValue, Key, OwnedKVList, PushFnValue, Record, 
 use slog_async::{Async, AsyncGuard, OverflowStrategy};
 use slog_term::{Decorator, PlainDecorator, RecordDecorator};
 
-use self::file_log::{RotateBySize, RotateBySignal, RotatingFileLogger, RotatingFileLoggerBuilder};
+use self::file_log::{RotateBySize, RotatingFileLogger, RotatingFileLoggerBuilder};
 use crate::config::{ReadableDuration, ReadableSize};
 
 pub use slog::{FilterFn, Level};
@@ -31,7 +31,7 @@ const SLOG_CHANNEL_OVERFLOW_STRATEGY: OverflowStrategy = OverflowStrategy::Drop;
 const TIMESTAMP_FORMAT: &str = "%Y-%m-%d %H:%M:%S%.6f %:z";
 
 static LOG_LEVEL: AtomicUsize = AtomicUsize::new(usize::max_value());
-static LOG_ROTATE_SIGNALED: AtomicBool = AtomicBool::new(false);
+static LOG_REOPEN_SIGNALED: AtomicBool = AtomicBool::new(false);
 
 pub fn init_log<D>(
     drain: D,
@@ -152,7 +152,6 @@ where
     let logger = BufWriter::new(
         RotatingFileLoggerBuilder::new(path, rename, max_backups, ReadableDuration::days(max_age))
             .add_rotator(RotateBySize::new(ReadableSize::mb(rotation_size)))
-            .add_rotator(RotateBySignal::new())
             .build()?,
     );
     Ok(logger)
@@ -291,12 +290,12 @@ pub fn set_log_level(new_level: Level) {
     LOG_LEVEL.store(new_level.as_usize(), Ordering::SeqCst)
 }
 
-pub fn get_log_rotate_signaled() -> bool {
-    LOG_ROTATE_SIGNALED.load(Ordering::Relaxed)
+pub fn get_log_reopen_signaled() -> bool {
+    LOG_REOPEN_SIGNALED.load(Ordering::Relaxed)
 }
 
-pub fn set_log_rotate_signaled(enabled: bool) {
-    LOG_ROTATE_SIGNALED.store(enabled, Ordering::SeqCst)
+pub fn set_log_reopen_signaled(enabled: bool) {
+    LOG_REOPEN_SIGNALED.store(enabled, Ordering::SeqCst)
 }
 
 pub struct TikvFormat<D>
