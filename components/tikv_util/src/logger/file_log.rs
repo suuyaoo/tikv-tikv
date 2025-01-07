@@ -9,6 +9,7 @@ use chrono::{DateTime, Duration, Local};
 
 use crate::config::{ReadableDuration, ReadableSize};
 use crate::worker::{LazyWorker, Runnable};
+use crate::logger::{get_log_rotate_signaled, set_log_rotate_signaled};
 
 /// Opens log file with append mode. Creates a new log file if it doesn't exist.
 fn open_log_file(path: impl AsRef<Path>) -> io::Result<File> {
@@ -189,6 +190,42 @@ impl Rotator for RotateBySize {
 
     fn on_rotate(&mut self) -> io::Result<()> {
         self.file_size = 0;
+        Ok(())
+    }
+}
+
+pub struct RotateBySignal {
+}
+
+impl RotateBySignal {
+    pub fn new() -> Self {
+        RotateBySignal {
+        }
+    }
+}
+
+impl Rotator for RotateBySignal {
+    fn is_enabled(&self) -> bool {
+        true
+    }
+
+    fn prepare(&mut self, _file: &File) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn should_rotate(&self) -> bool {
+        let signaled = get_log_rotate_signaled();
+        if signaled {
+            set_log_rotate_signaled(false);
+        }
+        signaled
+    }
+
+    fn on_write(&mut self, _data: &[u8]) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn on_rotate(&mut self) -> io::Result<()> {
         Ok(())
     }
 }
